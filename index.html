@@ -1,0 +1,2073 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="格價 App" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#0f766e" />
+  <title>格價 App - 智能貨品格價助手</title>
+
+  <!-- Dynamic PWA Manifest & App Icon via inline SVG Data URI -->
+  <link id="pwa-manifest" rel="manifest" href="" />
+  <link id="apple-touch-icon" rel="apple-touch-icon" href="" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts: Inter & Noto Sans TC -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --sat: env(safe-area-inset-top, 0px);
+      --sab: env(safe-area-inset-bottom, 0px);
+    }
+
+    * {
+      -webkit-tap-highlight-color: transparent;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #f1f5f9;
+      color: #0f172a;
+      margin: 0;
+      padding: 0;
+      overscroll-behavior-y: none;
+    }
+
+    /* Prevent iOS Safari auto-zoom on input focus (must be >= 16px) */
+    input, select, textarea {
+      font-size: 16px !important;
+    }
+
+    .safe-pt {
+      padding-top: max(12px, var(--sat));
+    }
+
+    .safe-pb {
+      padding-bottom: max(12px, var(--sab));
+    }
+
+    .app-container {
+      max-width: 480px;
+      margin: 0 auto;
+      min-height: 100dvh;
+      background-color: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      box-shadow: 0 0 40px rgba(15, 23, 42, 0.08);
+    }
+
+    .screen-fade {
+      animation: fadeIn 0.18s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Custom subtle scrollbar */
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body>
+  <div id="app" class="app-container">
+    <!-- Persistent Top App Header -->
+    <header class="sticky top-0 z-30 bg-teal-700 text-white shadow-md safe-pt">
+      <div class="flex items-center justify-between px-3 py-3 min-h-[56px]">
+        <!-- Back Button -->
+        <div class="w-20 flex items-center">
+          <button
+            id="header-back-btn"
+            onclick="goBack()"
+            class="hidden items-center gap-1 px-2.5 py-1.5 rounded-xl bg-teal-800/70 hover:bg-teal-800 active:scale-95 transition text-sm font-medium text-white"
+            aria-label="返回"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            <span>返回</span>
+          </button>
+        </div>
+
+        <!-- Dynamic Screen Title -->
+        <div class="flex-1 text-center px-1 truncate">
+          <h1 id="header-title" class="text-base sm:text-lg font-bold tracking-tight truncate">
+            格價 App
+          </h1>
+          <p id="header-subtitle" class="text-[11px] text-teal-100 leading-none mt-0.5 hidden truncate"></p>
+        </div>
+
+        <!-- Quick Home Button -->
+        <div class="w-20 flex items-center justify-end">
+          <button
+            id="header-home-btn"
+            onclick="navigate('home')"
+            class="p-2 rounded-xl bg-teal-800/60 hover:bg-teal-800 active:scale-95 transition text-white"
+            aria-label="首頁 Home"
+            title="首頁 Home"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Scrollable Content Area -->
+    <main id="main-content" class="flex-1 overflow-y-auto px-4 pt-4 pb-28">
+      <!-- Dynamic Screen Content Injected Here -->
+    </main>
+
+    <!-- Floating Action Button (FAB) Container -->
+    <div id="fab-container" class="fixed bottom-20 left-0 right-0 z-20 pointer-events-none">
+      <div class="max-w-[480px] mx-auto px-4 flex justify-end">
+        <!-- FAB Button rendered dynamically when applicable -->
+      </div>
+    </div>
+
+    <!-- Bottom Navigation Bar (4 Tabs for one-handed use) -->
+    <nav class="sticky bottom-0 z-30 bg-white border-t border-slate-200 safe-pb shadow-[0_-4px_12px_rgba(15,23,42,0.04)]">
+      <div class="grid grid-cols-4 h-16">
+        <button
+          onclick="navigate('home')"
+          data-tab="home"
+          class="nav-tab flex flex-col items-center justify-center gap-1 text-slate-500 hover:text-teal-700 transition"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          </svg>
+          <span class="text-[11px] font-medium">首頁 Home</span>
+        </button>
+
+        <button
+          onclick="navigate('shop-list')"
+          data-tab="shop"
+          class="nav-tab flex flex-col items-center justify-center gap-1 text-slate-500 hover:text-teal-700 transition"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+          </svg>
+          <span class="text-[11px] font-medium">商店 Shop</span>
+        </button>
+
+        <button
+          onclick="navigate('item-list')"
+          data-tab="item"
+          class="nav-tab flex flex-col items-center justify-center gap-1 text-slate-500 hover:text-teal-700 transition"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+          </svg>
+          <span class="text-[11px] font-medium">貨品 Item</span>
+        </button>
+
+        <button
+          onclick="navigate('import-export')"
+          data-tab="import-export"
+          class="nav-tab flex flex-col items-center justify-center gap-1 text-slate-500 hover:text-teal-700 transition"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+          </svg>
+          <span class="text-[11px] font-medium">匯入/匯出</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Custom Modal Dialog (Replaces alert() and confirm()) -->
+    <div id="custom-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+      <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-slate-100 transform transition-all">
+        <div class="flex items-start gap-3">
+          <div id="modal-icon" class="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-amber-100 text-amber-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <div class="flex-1">
+            <h3 id="modal-title" class="text-base font-bold text-slate-900">確認操作</h3>
+            <p id="modal-message" class="text-sm text-slate-600 mt-1.5 leading-relaxed"></p>
+          </div>
+        </div>
+        <div id="modal-actions" class="mt-5 flex items-center justify-end gap-2.5">
+          <button
+            id="modal-cancel-btn"
+            class="px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 active:scale-95 transition"
+          >
+            取消 Cancel
+          </button>
+          <button
+            id="modal-confirm-btn"
+            class="px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 active:scale-95 transition"
+          >
+            確定 Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification Banner -->
+    <div id="toast" class="fixed top-16 left-0 right-0 z-50 pointer-events-none flex justify-center px-4 opacity-0 transition-opacity duration-200">
+      <div id="toast-inner" class="bg-slate-900/95 text-white text-sm font-medium px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 max-w-md">
+        <span id="toast-icon">✅</span>
+        <span id="toast-text">已儲存</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * ============================================================================
+     * PWA MANIFEST & APP ICON SETUP (Allows Add to Home Screen on iOS & Android)
+     * ============================================================================
+     */
+    (function setupPWA() {
+      try {
+        const iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+          <rect width="512" height="512" rx="112" fill="#0f766e"/>
+          <path d="M140 160h130l110 110-130 130-110-110V160z" fill="#ffffff"/>
+          <circle cx="195" cy="215" r="22" fill="#0f766e"/>
+          <text x="256" y="455" font-family="sans-serif" font-size="68" font-weight="bold" fill="#ccfbf1" text-anchor="middle">格價</text>
+        </svg>`;
+        const iconUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(iconSvg);
+        document.getElementById('apple-touch-icon').setAttribute('href', iconUrl);
+
+        const manifest = {
+          name: '格價 App - 智能貨品格價',
+          short_name: '格價 App',
+          description: '輕鬆比較不同商店與包裝規格的貨品平均單價，找出最抵價！',
+          start_url: '.',
+          display: 'standalone',
+          background_color: '#f8fafc',
+          theme_color: '#0f766e',
+          icons: [
+            {
+              src: iconUrl,
+              sizes: '512x512',
+              type: 'image/svg+xml',
+              purpose: 'any maskable'
+            }
+          ]
+        };
+        const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+        const manifestUrl = URL.createObjectURL(manifestBlob);
+        document.getElementById('pwa-manifest').setAttribute('href', manifestUrl);
+      } catch (e) {
+        console.warn('PWA setup fallback:', e);
+      }
+    })();
+
+    /**
+     * ============================================================================
+     * DATA STORE & INITIAL SAMPLE DATA (localStorage Persistence)
+     * ============================================================================
+     */
+    const STORAGE_KEY = 'price_comparison_app_data_v1';
+    const CONTACT_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSeE4JjIUKVYS5yvHVtsjC8pCuUKNSCICl3SkcrhQTRR5E0FlA/viewform?usp=publish-editor';
+
+    const DEFAULT_DATA = {
+      shops: [
+        { id: 'shop_1', name: 'Wellcome' },
+        { id: 'shop_2', name: 'Parkin' }
+      ],
+      items: [
+        { id: 'item_1', name: 'Green tea powder', unit: 'g' },
+        { id: 'item_2', name: 'Coffee bean', unit: 'g' }
+      ],
+      prices: [
+        {
+          id: 'price_1',
+          itemId: 'item_1',
+          shopName: 'Wellcome',
+          qtyPerItem: 250,
+          totalItems: 4,
+          totalPrice: 18
+        },
+        {
+          id: 'price_2',
+          itemId: 'item_1',
+          shopName: 'Parkin',
+          qtyPerItem: 500,
+          totalItems: 1,
+          totalPrice: 10
+        }
+      ]
+    };
+
+    let appData = {
+      shops: [],
+      items: [],
+      prices: []
+    };
+
+    // UI & Navigation State
+    let navStack = [{ screen: 'home', params: {} }];
+    let showInstallGuide = false;
+    let itemSearchQuery = '';
+
+    function loadData() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
+          saveData();
+        } else {
+          const parsed = JSON.parse(raw);
+          appData = {
+            shops: Array.isArray(parsed.shops) ? parsed.shops : [],
+            items: Array.isArray(parsed.items) ? parsed.items : [],
+            prices: Array.isArray(parsed.prices) ? parsed.prices : []
+          };
+        }
+      } catch (err) {
+        console.error('Error loading localStorage:', err);
+        appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
+      }
+    }
+
+    function saveData() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+      } catch (err) {
+        console.error('Error saving to localStorage:', err);
+        showToast('儲存失敗，請檢查瀏覽器儲存空間', '⚠️');
+      }
+    }
+
+    function generateId(prefix) {
+      return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    }
+
+    /**
+     * ============================================================================
+     * CALCULATION HELPERS (Matching Functional Specification Exact Formula)
+     * ============================================================================
+     */
+    function calcAvgPrice(totalPrice, qtyPerItem, totalItems) {
+      const denom = Number(qtyPerItem) * Number(totalItems);
+      if (!denom || denom <= 0 || isNaN(denom)) return 0;
+      const val = Number(totalPrice) / denom;
+      return isNaN(val) ? 0 : val;
+    }
+
+    function formatNumber(num, maxDecimals = 4) {
+      if (num === null || num === undefined || isNaN(num)) return '0';
+      // Format cleanly up to maxDecimals without trailing zeros
+      const fixed = Number(num).toFixed(maxDecimals);
+      return parseFloat(fixed).toString();
+    }
+
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    /**
+     * ============================================================================
+     * UI FEEDBACK: CUSTOM DIALOG & TOAST (Zero native alert/confirm)
+     * ============================================================================
+     */
+    let toastTimer = null;
+    function showToast(message, icon = '✅') {
+      const toastEl = document.getElementById('toast');
+      document.getElementById('toast-text').textContent = message;
+      document.getElementById('toast-icon').textContent = icon;
+      toastEl.classList.remove('opacity-0');
+      toastEl.classList.add('opacity-100');
+
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toastEl.classList.remove('opacity-100');
+        toastEl.classList.add('opacity-0');
+      }, 2400);
+    }
+
+    function showModal({ title, message, confirmText = '確定 Confirm', cancelText = '取消 Cancel', isDanger = false, showCancel = true, onConfirm }) {
+      const modal = document.getElementById('custom-modal');
+      const titleEl = document.getElementById('modal-title');
+      const msgEl = document.getElementById('modal-message');
+      const confirmBtn = document.getElementById('modal-confirm-btn');
+      const cancelBtn = document.getElementById('modal-cancel-btn');
+      const iconWrap = document.getElementById('modal-icon');
+
+      titleEl.textContent = title;
+      msgEl.textContent = message;
+      confirmBtn.textContent = confirmText;
+      cancelBtn.textContent = cancelText;
+
+      if (showCancel) {
+        cancelBtn.classList.remove('hidden');
+      } else {
+        cancelBtn.classList.add('hidden');
+      }
+
+      if (isDanger) {
+        confirmBtn.className = 'px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 active:scale-95 transition';
+        iconWrap.className = 'w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-rose-100 text-rose-600';
+      } else {
+        confirmBtn.className = 'px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 active:scale-95 transition';
+        iconWrap.className = 'w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-amber-100 text-amber-600';
+      }
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+
+      const closeModal = () => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      };
+
+      cancelBtn.onclick = closeModal;
+      confirmBtn.onclick = () => {
+        closeModal();
+        if (typeof onConfirm === 'function') onConfirm();
+      };
+    }
+
+    /**
+     * ============================================================================
+     * NAVIGATION CONTROLLER
+     * ============================================================================
+     */
+    function currentRoute() {
+      return navStack[navStack.length - 1];
+    }
+
+    function navigate(screen, params = {}, replace = false) {
+      if (screen === 'home') {
+        navStack = [{ screen: 'home', params: {} }];
+      } else if (replace) {
+        navStack[navStack.length - 1] = { screen, params };
+      } else {
+        navStack.push({ screen, params });
+      }
+      render();
+      document.getElementById('main-content').scrollTop = 0;
+    }
+
+    function goBack() {
+      if (navStack.length > 1) {
+        navStack.pop();
+        render();
+      } else {
+        navigate('home');
+      }
+    }
+
+    function updateNavigationChrome(screen, title, subtitle = '') {
+      const backBtn = document.getElementById('header-back-btn');
+      const homeBtn = document.getElementById('header-home-btn');
+      const titleEl = document.getElementById('header-title');
+      const subtitleEl = document.getElementById('header-subtitle');
+
+      titleEl.textContent = title;
+      if (subtitle) {
+        subtitleEl.textContent = subtitle;
+        subtitleEl.classList.remove('hidden');
+      } else {
+        subtitleEl.classList.add('hidden');
+      }
+
+      if (screen === 'home' || navStack.length <= 1) {
+        backBtn.classList.add('hidden');
+        backBtn.classList.remove('flex');
+      } else {
+        backBtn.classList.remove('hidden');
+        backBtn.classList.add('flex');
+      }
+
+      if (screen === 'home') {
+        homeBtn.classList.add('opacity-40', 'pointer-events-none');
+      } else {
+        homeBtn.classList.remove('opacity-40', 'pointer-events-none');
+      }
+
+      // Highlight active bottom tab
+      let activeTab = 'home';
+      if (screen.startsWith('shop')) activeTab = 'shop';
+      else if (screen.startsWith('item') || screen.startsWith('price')) activeTab = 'item';
+      else if (screen === 'import-export') activeTab = 'import-export';
+
+      document.querySelectorAll('.nav-tab').forEach(btn => {
+        const isMatch = btn.getAttribute('data-tab') === activeTab;
+        if (isMatch) {
+          btn.classList.remove('text-slate-500');
+          btn.classList.add('text-teal-700', 'font-bold');
+        } else {
+          btn.classList.add('text-slate-500');
+          btn.classList.remove('text-teal-700', 'font-bold');
+        }
+      });
+    }
+
+    function setFAB(html) {
+      const container = document.querySelector('#fab-container > div');
+      container.innerHTML = html || '';
+    }
+
+    /**
+     * ============================================================================
+     * SCREEN RENDERERS (All 8 Screens from Specification)
+     * ============================================================================
+     */
+    function render() {
+      const route = currentRoute();
+      const main = document.getElementById('main-content');
+      setFAB('');
+
+      switch (route.screen) {
+        case 'home':
+          renderHome(main);
+          break;
+        case 'shop-list':
+          renderShopList(main);
+          break;
+        case 'shop-edit':
+          renderShopEdit(main, route.params);
+          break;
+        case 'item-list':
+          renderItemList(main);
+          break;
+        case 'item-edit':
+          renderItemEdit(main, route.params);
+          break;
+        case 'price-list':
+          renderPriceList(main, route.params);
+          break;
+        case 'price-edit':
+          renderPriceEdit(main, route.params);
+          break;
+        case 'import-export':
+          renderImportExport(main);
+          break;
+        default:
+          renderHome(main);
+      }
+    }
+
+    /**
+     * ----------------------------------------------------------------------------
+     * SCREEN 1: HOME (首頁)
+     * ----------------------------------------------------------------------------
+     */
+    function renderHome(container) {
+      updateNavigationChrome('home', '格價 App', 'Price Comparison');
+
+      const shopCount = appData.shops.length;
+      const itemCount = appData.items.length;
+      const priceCount = appData.prices.length;
+
+      container.innerHTML = `
+        <div class="screen-fade space-y-4">
+          <!-- Hero Summary Card -->
+          <div class="bg-gradient-to-br from-teal-700 via-teal-600 to-emerald-600 rounded-2xl p-5 text-white shadow-md">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-teal-100 text-xs font-medium uppercase tracking-wider">Smart Shopping Assistant</p>
+                <h2 class="text-xl font-bold mt-1">精明格價，一眼睇晒</h2>
+                <p class="text-teal-50 text-xs mt-1">自動計算每單位平均價，即時找出最抵買商店 👍</p>
+              </div>
+              <div class="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-xs flex items-center justify-center text-2xl shrink-0">
+                🏷️
+              </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-white/15 text-center">
+              <div class="bg-white/10 rounded-xl py-2 px-1">
+                <div class="text-lg font-bold">${shopCount}</div>
+                <div class="text-[11px] text-teal-100">商店 Shops</div>
+              </div>
+              <div class="bg-white/10 rounded-xl py-2 px-1">
+                <div class="text-lg font-bold">${itemCount}</div>
+                <div class="text-[11px] text-teal-100">貨品 Items</div>
+              </div>
+              <div class="bg-white/10 rounded-xl py-2 px-1">
+                <div class="text-lg font-bold">${priceCount}</div>
+                <div class="text-[11px] text-teal-100">格價紀錄</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Primary Navigation Cards (Spec Screen 1: Shop, Item, Import/Export) -->
+          <div class="space-y-3">
+            <!-- Card 1: Item (貨品格價) -->
+            <button
+              onclick="navigate('item-list')"
+              class="w-full text-left bg-white hover:bg-teal-50/40 active:scale-[0.99] transition rounded-2xl p-4 shadow-xs border border-slate-200/80 flex items-center gap-4"
+            >
+              <div class="w-14 h-14 rounded-2xl bg-teal-100 text-teal-700 flex items-center justify-center shrink-0">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                </svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between">
+                  <h3 class="text-base font-bold text-slate-900">Item 貨品格價</h3>
+                  <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-teal-50 text-teal-700">${itemCount} 項</span>
+                </div>
+                <p class="text-xs text-slate-500 mt-1">管理貨品與單位，比較各商店價格及平均單價</p>
+              </div>
+              <svg class="w-5 h-5 text-slate-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+
+            <!-- Card 2: Shop (商店管理) -->
+            <button
+              onclick="navigate('shop-list')"
+              class="w-full text-left bg-white hover:bg-indigo-50/40 active:scale-[0.99] transition rounded-2xl p-4 shadow-xs border border-slate-200/80 flex items-center gap-4"
+            >
+              <div class="w-14 h-14 rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between">
+                  <h3 class="text-base font-bold text-slate-900">Shop 商店管理</h3>
+                  <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700">${shopCount} 間</span>
+                </div>
+                <p class="text-xs text-slate-500 mt-1">新增或編輯超市、網店及常去商店名稱</p>
+              </div>
+              <svg class="w-5 h-5 text-slate-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+
+            <!-- Card 3: Import / Export (資料匯入 / 匯出) -->
+            <button
+              onclick="navigate('import-export')"
+              class="w-full text-left bg-white hover:bg-amber-50/40 active:scale-[0.99] transition rounded-2xl p-4 shadow-xs border border-slate-200/80 flex items-center gap-4"
+            >
+              <div class="w-14 h-14 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between">
+                  <h3 class="text-base font-bold text-slate-900">Import / Export 匯入匯出</h3>
+                </div>
+                <p class="text-xs text-slate-500 mt-1">以 Tab 分隔檔案備份或還原所有商店及格價紀錄</p>
+              </div>
+              <svg class="w-5 h-5 text-slate-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+
+          <!-- Direct Contact Designer Card on Home Screen -->
+          <a
+            href="https://docs.google.com/forms/d/e/1FAIpQLSeE4JjIUKVYS5yvHVtsjC8pCuUKNSCICl3SkcrhQTRR5E0FlA/viewform?usp=publish-editor"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="w-full bg-white hover:bg-emerald-50/40 active:scale-[0.99] transition rounded-2xl p-4 shadow-xs border border-slate-200/80 flex items-center gap-4"
+          >
+            <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-xl shrink-0">
+              ✉️
+            </div>
+            <div class="flex-1 min-w-0">
+              <h3 class="text-sm font-bold text-slate-900">聯絡設計師 / 意見回饋</h3>
+              <p class="text-xs text-slate-500 mt-0.5">填寫 Google Form 提交建議、問題或聯絡設計師</p>
+            </div>
+            <svg class="w-5 h-5 text-slate-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+          </a>
+
+          <!-- Collapsible PWA Install Tip Banner for iPhone & Android -->
+          <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
+            <button
+              onclick="toggleInstallGuide()"
+              class="w-full px-4 py-3 flex items-center justify-between text-left bg-slate-50/80 hover:bg-slate-100/70 transition"
+            >
+              <div class="flex items-center gap-2.5">
+                <span class="text-base">📲</span>
+                <span class="text-xs font-bold text-slate-700">安裝到手機主畫面 (支援 iPhone & Android)</span>
+              </div>
+              <svg class="w-4 h-4 text-slate-500 transition-transform ${showInstallGuide ? 'rotate-180' : ''}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            ${showInstallGuide ? `
+              <div class="p-4 text-xs text-slate-600 space-y-3 border-t border-slate-100 bg-white">
+                <div class="flex items-start gap-2.5">
+                  <span class="px-2 py-0.5 rounded bg-slate-900 text-white font-bold text-[10px] shrink-0 mt-0.5">iPhone</span>
+                  <p class="leading-relaxed">使用 <strong>Safari</strong> 開啟此頁面 → 點擊底部中央「<strong>分享</strong>」圖示 (方格向上箭咀) → 向下滑動選擇「<strong>加入主畫面 (Add to Home Screen)</strong>」即可像原生 App 般離線使用。</p>
+                </div>
+                <div class="flex items-start gap-2.5">
+                  <span class="px-2 py-0.5 rounded bg-emerald-600 text-white font-bold text-[10px] shrink-0 mt-0.5">Android</span>
+                  <p class="leading-relaxed">使用 <strong>Chrome</strong> 開啟此頁面 → 點擊右上角「<strong>⋮</strong>」選單 → 選擇「<strong>安裝應用程式 (Install App)</strong>」或「<strong>加到主畫面</strong>」。</p>
+                </div>
+              </div>
+            ` : ''}
+          </div>
+
+          <!-- Designer Contact Footer Link (Google Form) -->
+          <div class="pt-2 pb-1 text-center">
+            <a
+              href="${CONTACT_FORM_URL}"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-teal-700 transition py-1.5 px-3 rounded-full hover:bg-white"
+            >
+              <span>✉️ 聯絡設計師 / 意見回饋</span>
+            </a>
+          </div>
+        </div>
+      `;
+    }
+
+    function toggleInstallGuide() {
+      showInstallGuide = !showInstallGuide;
+      render();
+    }
+
+    /**
+     * ----------------------------------------------------------------------------
+     * SCREEN 2: SHOP LIST (商店列表)
+     * ----------------------------------------------------------------------------
+     */
+    function renderShopList(container) {
+      updateNavigationChrome('shop-list', '商店列表 Shop List', `共 ${appData.shops.length} 間商店`);
+
+      setFAB(`
+        <button
+          onclick="navigate('shop-edit', { mode: 'create' })"
+          class="pointer-events-auto flex items-center gap-2 bg-teal-600 hover:bg-teal-700 active:scale-95 text-white font-bold px-5 py-3.5 rounded-full shadow-lg shadow-teal-700/30 transition"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+          <span>新增商店</span>
+        </button>
+      `);
+
+      if (appData.shops.length === 0) {
+        container.innerHTML = `
+          <div class="screen-fade flex flex-col items-center justify-center text-center py-16 px-4">
+            <div class="w-16 h-16 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center text-3xl mb-3">🏪</div>
+            <h3 class="text-base font-bold text-slate-800">暫時未有商店紀錄</h3>
+            <p class="text-xs text-slate-500 mt-1 max-w-xs">點擊右下角「+ 新增商店」建立你的第一個商店（例如：Wellcome、Parkin）</p>
+          </div>
+        `;
+        return;
+      }
+
+      const listHtml = appData.shops.map(shop => {
+        const count = appData.prices.filter(p => p.shopName === shop.name).length;
+        return `
+          <button
+            onclick="navigate('shop-edit', { mode: 'edit', shopId: '${shop.id}' })"
+            class="w-full text-left bg-white hover:bg-slate-50 active:scale-[0.99] transition rounded-2xl p-4 shadow-2xs border border-slate-200/80 flex items-center justify-between gap-3"
+          >
+            <div class="flex items-center gap-3.5 min-w-0">
+              <div class="w-11 h-11 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-base shrink-0">
+                ${escapeHtml(shop.name.charAt(0).toUpperCase())}
+              </div>
+              <div class="min-w-0">
+                <div class="text-base font-bold text-slate-900 truncate">${escapeHtml(shop.name)}</div>
+                <div class="text-xs text-slate-500 mt-0.5">${count} 筆格價紀錄</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-1 text-slate-400 shrink-0">
+              <span class="text-xs font-medium text-slate-400">編輯</span>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+          </button>
+        `;
+      }).join('');
+
+      container.innerHTML = `
+        <div class="screen-fade space-y-2.5">
+          <div class="text-xs font-medium text-slate-500 px-1">點擊商店名稱可進行修改或刪除：</div>
+          ${listHtml}
+        </div>
+      `;
+    }
+
+    /**
+     * ----------------------------------------------------------------------------
+     * SCREEN 3: SHOP EDIT (編輯商店)
+     * ----------------------------------------------------------------------------
+     */
+    function renderShopEdit(container, params = {}) {
+      const isEdit = params.mode === 'edit' && params.shopId;
+      const existingShop = isEdit ? appData.shops.find(s => s.id === params.shopId) : null;
+
+      updateNavigationChrome(
+        'shop-edit',
+        isEdit ? '編輯商店 Shop Edit' : '新增商店 New Shop',
+        isEdit ? existingShop?.name : '建立新商店'
+      );
+
+      container.innerHTML = `
+        <div class="screen-fade space-y-4">
+          <form id="shop-form" onsubmit="handleSaveShop(event, '${isEdit ? existingShop.id : ''}')" class="bg-white rounded-2xl p-5 shadow-2xs border border-slate-200/80 space-y-4">
+            <div>
+              <label for="shop-name-input" class="block text-sm font-bold text-slate-800 mb-1.5">
+                Shop Name 商店名稱 <span class="text-rose-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="shop-name-input"
+                value="${existingShop ? escapeHtml(existingShop.name) : ''}"
+                placeholder="例如：Wellcome, Parkin, HKTVmall..."
+                required
+                class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 outline-none transition bg-slate-50 focus:bg-white text-slate-900"
+              />
+              <p id="shop-error" class="text-xs text-rose-600 font-medium mt-1.5 hidden"></p>
+            </div>
+
+            <div class="pt-2 flex flex-col gap-2.5">
+              <button
+                type="submit"
+                class="w-full py-3.5 px-4 rounded-xl bg-teal-600 hover:bg-teal-700 active:scale-[0.99] text-white font-bold text-base shadow-sm transition"
+              >
+                儲存 Save
+              </button>
+
+              ${isEdit ? `
+                <button
+                  type="button"
+                  onclick="handleDeleteShop('${existingShop.id}')"
+                  class="w-full py-3 px-4 rounded-xl bg-rose-50 hover:bg-rose-100 active:scale-[0.99] text-rose-600 font-bold text-sm transition"
+                >
+                  刪除商店 Delete Shop
+                </button>
+              ` : ''}
+            </div>
+          </form>
+        </div>
+      `;
+
+      setTimeout(() => {
+        const input = document.getElementById('shop-name-input');
+        if (input && !isEdit) input.focus();
+      }, 80);
+    }
+
+    function handleSaveShop(e, shopId) {
+      e.preventDefault();
+      const input = document.getElementById('shop-name-input');
+      const errEl = document.getElementById('shop-error');
+      const name = input.value.trim();
+
+      if (!name) {
+        errEl.textContent = '請輸入商店名稱 (Shop Name 不能為空)';
+        errEl.classList.remove('hidden');
+        input.focus();
+        return;
+      }
+
+      // Check duplicate shop name (case-insensitive)
+      const duplicate = appData.shops.find(
+        s => s.name.toLowerCase() === name.toLowerCase() && s.id !== shopId
+      );
+      if (duplicate) {
+        errEl.textContent = '此商店名稱已存在，請使用其他名稱';
+        errEl.classList.remove('hidden');
+        input.focus();
+        return;
+      }
+
+      if (shopId) {
+        const target = appData.shops.find(s => s.id === shopId);
+        if (target) {
+          const oldName = target.name;
+          target.name = name;
+          // Cascade rename to associated price records
+          appData.prices.forEach(p => {
+            if (p.shopName === oldName) {
+              p.shopName = name;
+            }
+          });
+        }
+        showToast('商店資料已更新', '✅');
+      } else {
+        appData.shops.push({
+          id: generateId('shop'),
+          name
+        });
+        showToast('已新增商店', '✅');
+      }
+
+      saveData();
+      goBack();
+    }
+
+    function handleDeleteShop(shopId) {
+      const target = appData.shops.find(s => s.id === shopId);
+      if (!target) return;
+
+      const linkedCount = appData.prices.filter(p => p.shopName === target.name).length;
+      const extraMsg = linkedCount > 0
+        ? `（注意：此商店目前有 ${linkedCount} 筆格價紀錄，刪除商店不會自動刪除該格價紀錄）`
+        : '';
+
+      showModal({
+        title: '刪除商店 Delete Shop',
+        message: `確定要刪除「${target.name}」嗎？${extraMsg}`,
+        confirmText: '確定刪除',
+        isDanger: true,
+        onConfirm: () => {
+          appData.shops = appData.shops.filter(s => s.id !== shopId);
+          saveData();
+          showToast('已刪除商店', '🗑️');
+          goBack();
+        }
+      });
+    }
+
+    /**
+     * ----------------------------------------------------------------------------
+     * SCREEN 4: ITEM LIST (貨品列表)
+     * ----------------------------------------------------------------------------
+     */
+    function buildItemListItemsHtml() {
+      const q = (itemSearchQuery || '').trim().toLowerCase();
+      const filtered = q
+        ? appData.items.filter(item =>
+            (item.name || '').toLowerCase().includes(q) ||
+            (item.unit || '').toLowerCase().includes(q)
+          )
+        : appData.items;
+
+      if (appData.items.length === 0) {
+        return `
+          <div class="flex flex-col items-center justify-center text-center py-16 px-4">
+            <div class="w-16 h-16 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center text-3xl mb-3">🏷️</div>
+            <h3 class="text-base font-bold text-slate-800">暫時未有貨品紀錄</h3>
+            <p class="text-xs text-slate-500 mt-1 max-w-xs">點擊右下角「+ 新增貨品」加入你想格價的貨品（例如：Green tea powder，單位 g）</p>
+          </div>
+        `;
+      }
+
+      if (filtered.length === 0) {
+        return `
+          <div class="flex flex-col items-center justify-center text-center py-12 px-4 bg-white rounded-2xl border border-dashed border-slate-300">
+            <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center text-2xl mb-2.5">🔍</div>
+            <h3 class="text-sm font-bold text-slate-800">找不到符合「${escapeHtml(itemSearchQuery.trim())}」的貨品</h3>
+            <p class="text-xs text-slate-500 mt-1">請嘗試其他關鍵字，或點擊清除搜尋</p>
+            <button
+              type="button"
+              onclick="clearItemSearch()"
+              class="mt-3 px-4 py-2 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-700 text-xs font-bold transition"
+            >
+              清除搜尋
+            </button>
+          </div>
+        `;
+      }
+
+      const listHtml = filtered.map(item => {
+        const itemPrices = appData.prices.filter(p => p.itemId === item.id);
+        let bestBadgeHtml = `<span class="text-xs text-slate-400">尚未有格價紀錄</span>`;
+
+        if (itemPrices.length > 0) {
+          let minAvg = Infinity;
+          let bestShops = [];
+          itemPrices.forEach(p => {
+            const avg = calcAvgPrice(p.totalPrice, p.qtyPerItem, p.totalItems);
+            if (avg < minAvg - 1e-9) {
+              minAvg = avg;
+              bestShops = [p.shopName];
+            } else if (Math.abs(avg - minAvg) <= 1e-9) {
+              if (!bestShops.includes(p.shopName)) bestShops.push(p.shopName);
+            }
+          });
+
+          bestBadgeHtml = `
+            <div class="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200/80 text-emerald-800 px-2.5 py-1 rounded-lg text-xs font-semibold mt-2">
+              <span>👍</span>
+              <span>最抵: $${formatNumber(minAvg)} / ${escapeHtml(item.unit)}</span>
+              <span class="text-emerald-600 font-normal">(${escapeHtml(bestShops.join(', '))})</span>
+            </div>
+          `;
+        }
+
+        return `
+          <div class="bg-white rounded-2xl shadow-2xs border border-slate-200/80 overflow-hidden">
+            <button
+              onclick="navigate('price-list', { itemId: '${item.id}' })"
+              class="w-full text-left p-4 hover:bg-slate-50/80 active:scale-[0.99] transition flex items-center justify-between gap-3"
+            >
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <h3 class="text-base font-bold text-slate-900 truncate">${escapeHtml(item.name)}</h3>
+                  <span class="text-xs font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600">
+                    Unit: ${escapeHtml(item.unit)}
+                  </span>
+                </div>
+                <div class="mt-1">
+                  ${bestBadgeHtml}
+                </div>
+              </div>
+
+              <div class="flex flex-col items-end shrink-0 gap-1">
+                <span class="text-xs font-semibold text-teal-700 bg-teal-50 px-2.5 py-1 rounded-full">
+                  ${itemPrices.length} 筆格價
+                </span>
+                <span class="text-[11px] text-slate-400 flex items-center gap-0.5 mt-1">
+                  查看格價
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </span>
+              </div>
+            </button>
+          </div>
+        `;
+      }).join('');
+
+      const countLabel = q
+        ? `搜尋結果：顯示 ${filtered.length} / ${appData.items.length} 款貨品`
+        : `點擊貨品查看及比較各商店價格（共 ${appData.items.length} 款）：`;
+
+      return `
+        <div class="text-xs font-medium text-slate-500 px-1">${countLabel}</div>
+        <div class="space-y-3">
+          ${listHtml}
+        </div>
+      `;
+    }
+
+    function handleItemSearchInput(val) {
+      itemSearchQuery = val || '';
+      const clearBtn = document.getElementById('item-search-clear-btn');
+      if (clearBtn) {
+        if (itemSearchQuery.length > 0) {
+          clearBtn.classList.remove('hidden');
+          clearBtn.classList.add('flex');
+        } else {
+          clearBtn.classList.add('hidden');
+          clearBtn.classList.remove('flex');
+        }
+      }
+      const resultsEl = document.getElementById('item-list-results');
+      if (resultsEl) {
+        resultsEl.innerHTML = buildItemListItemsHtml();
+      }
+    }
+
+    function clearItemSearch() {
+      itemSearchQuery = '';
+      const input = document.getElementById('item-search-input');
+      if (input) {
+        input.value = '';
+        input.focus();
+      }
+      handleItemSearchInput('');
+    }
+
+    function renderItemList(container) {
+      updateNavigationChrome('item-list', '貨品列表 Item List', `共 ${appData.items.length} 款貨品`);
+
+      setFAB(`
+        <button
+          onclick="navigate('item-edit', { mode: 'create' })"
+          class="pointer-events-auto flex items-center gap-2 bg-teal-600 hover:bg-teal-700 active:scale-95 text-white font-bold px-5 py-3.5 rounded-full shadow-lg shadow-teal-700/30 transition"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+          <span>新增貨品</span>
+        </button>
+      `);
+
+      const hasQuery = (itemSearchQuery || '').length > 0;
+
+      container.innerHTML = `
+        <div class="screen-fade space-y-3">
+          <!-- Search Item Name Bar -->
+          <div class="relative flex items-center bg-white rounded-2xl border border-slate-200/90 shadow-2xs focus-within:border-teal-600 focus-within:ring-2 focus-within:ring-teal-600/20 transition">
+            <div class="pl-3.5 pr-2 text-slate-400 pointer-events-none flex items-center">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 105.5 5.5a7.5 7.5 0 0011.15 11.15z" />
+              </svg>
+            </div>
+            <input
+              type="search"
+              id="item-search-input"
+              value="${escapeHtml(itemSearchQuery)}"
+              oninput="handleItemSearchInput(this.value)"
+              placeholder="搜尋貨品名稱 Search item name..."
+              autocomplete="off"
+              class="w-full py-3 pr-9 bg-transparent outline-none text-slate-900 placeholder:text-slate-400"
+            />
+            <button
+              type="button"
+              id="item-search-clear-btn"
+              onclick="clearItemSearch()"
+              aria-label="清除搜尋"
+              class="${hasQuery ? 'flex' : 'hidden'} absolute right-2.5 w-6 h-6 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 items-center justify-center text-xs font-bold transition"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div id="item-list-results" class="space-y-3">
+            ${buildItemListItemsHtml()}
+          </div>
+        </div>
+      `;
+    }
+
+    /**
+     * ----------------------------------------------------------------------------
+     * SCREEN 5: ITEM EDIT (編輯貨品)
+     * ----------------------------------------------------------------------------
+     */
+    function renderItemEdit(container, params = {}) {
+      const isEdit = params.mode === 'edit' && params.itemId;
+      const existingItem = isEdit ? appData.items.find(i => i.id === params.itemId) : null;
+
+      updateNavigationChrome(
+        'item-edit',
+        isEdit ? '編輯貨品 Item Edit' : '新增貨品 New Item',
+        isEdit ? existingItem?.name : '建立新格價貨品'
+      );
+
+      const commonUnits = ['g', 'kg', 'ml', 'L', 'pcs', '包', '罐', '支'];
+
+      container.innerHTML = `
+        <div class="screen-fade space-y-4">
+          <form id="item-form" onsubmit="handleSaveItem(event, '${isEdit ? existingItem.id : ''}')" class="bg-white rounded-2xl p-5 shadow-2xs border border-slate-200/80 space-y-4">
+            <!-- Field 1: 貨品 (Item Name) -->
+            <div>
+              <label for="item-name-input" class="block text-sm font-bold text-slate-800 mb-1.5">
+                貨品 Item Name <span class="text-rose-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="item-name-input"
+                value="${existingItem ? escapeHtml(existingItem.name) : ''}"
+                placeholder="例如：Green tea powder, Coffee bean..."
+                required
+                class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 outline-none transition bg-slate-50 focus:bg-white text-slate-900"
+              />
+            </div>
+
+            <!-- Field 2: Unit (單位) -->
+            <div>
+              <label for="item-unit-input" class="block text-sm font-bold text-slate-800 mb-1.5">
+                Unit 單位 <span class="text-rose-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="item-unit-input"
+                value="${existingItem ? escapeHtml(existingItem.unit) : ''}"
+                placeholder="例如：g, ml, pcs, 包..."
+                required
+                class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 outline-none transition bg-slate-50 focus:bg-white text-slate-900"
+              />
+              <!-- Quick Unit Chips for effortless mobile tapping -->
+              <div class="flex flex-wrap gap-1.5 mt-2">
+                ${commonUnits.map(u => `
+                  <button
+                    type="button"
+                    onclick="document.getElementById('item-unit-input').value = '${u}'"
+                    class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-teal-100 hover:text-teal-800 text-slate-600 transition"
+                  >
+                    ${u}
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+
+            <p id="item-error" class="text-xs text-rose-600 font-medium hidden"></p>
+
+            <div class="pt-2 flex flex-col gap-2.5">
+              <button
+                type="submit"
+                class="w-full py-3.5 px-4 rounded-xl bg-teal-600 hover:bg-teal-700 active:scale-[0.99] text-white font-bold text-base shadow-sm transition"
+              >
+                儲存 Save
+              </button>
+
+              ${isEdit ? `
+                <button
+                  type="button"
+                  onclick="handleDeleteItem('${existingItem.id}')"
+                  class="w-full py-3 px-4 rounded-xl bg-rose-50 hover:bg-rose-100 active:scale-[0.99] text-rose-600 font-bold text-sm transition"
+                >
+                  刪除貨品 Delete Item
+                </button>
+              ` : ''}
+            </div>
+          </form>
+        </div>
+      `;
+
+      setTimeout(() => {
+        const input = document.getElementById('item-name-input');
+        if (input && !isEdit) input.focus();
+      }, 80);
+    }
+
+    function handleSaveItem(e, itemId) {
+      e.preventDefault();
+      const nameInput = document.getElementById('item-name-input');
+      const unitInput = document.getElementById('item-unit-input');
+      const errEl = document.getElementById('item-error');
+
+      const name = nameInput.value.trim();
+      const unit = unitInput.value.trim();
+
+      if (!name || !unit) {
+        errEl.textContent = '請填寫「貨品名稱」及「Unit 單位」';
+        errEl.classList.remove('hidden');
+        return;
+      }
+
+      if (itemId) {
+        const target = appData.items.find(i => i.id === itemId);
+        if (target) {
+          target.name = name;
+          target.unit = unit;
+        }
+        saveData();
+        showToast('貨品資料已更新', '✅');
+        goBack();
+      } else {
+        const newItem = {
+          id: generateId('item'),
+          name,
+          unit
+        };
+        appData.items.push(newItem);
+        saveData();
+        showToast('已新增貨品', '✅');
+        // Replace item-edit with price-list for immediate price entry convenience
+        navigate('price-list', { itemId: newItem.id }, true);
+      }
+    }
+
+    function handleDeleteItem(itemId) {
+      const target = appData.items.find(i => i.id === itemId);
+      if (!target) return;
+
+      const priceCount = appData.prices.filter(p => p.itemId === itemId).length;
+      showModal({
+        title: '刪除貨品 Delete Item',
+        message: `確定要刪除「${target.name}」嗎？相關的 ${priceCount} 筆格價紀錄亦會一併刪除。`,
+        confirmText: '確定刪除',
+        isDanger: true,
+        onConfirm: () => {
+          appData.items = appData.items.filter(i => i.id !== itemId);
+          appData.prices = appData.prices.filter(p => p.itemId !== itemId);
+          saveData();
+          showToast('已刪除貨品', '🗑️');
+          navigate('item-list');
+        }
+      });
+    }
+
+    /**
+     * ----------------------------------------------------------------------------
+     * SCREEN 6: PRICE LIST (格價列表 for a selected Item)
+     * ----------------------------------------------------------------------------
+     */
+    function renderPriceList(container, params = {}) {
+      const item = appData.items.find(i => i.id === params.itemId);
+      if (!item) {
+        navigate('item-list');
+        return;
+      }
+
+      updateNavigationChrome('price-list', item.name, `單位 Unit: ${item.unit}`);
+
+      setFAB(`
+        <button
+          onclick="navigate('price-edit', { mode: 'create', itemId: '${item.id}' })"
+          class="pointer-events-auto flex items-center gap-2 bg-teal-600 hover:bg-teal-700 active:scale-95 text-white font-bold px-5 py-3.5 rounded-full shadow-lg shadow-teal-700/30 transition"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+          <span>新增格價</span>
+        </button>
+      `);
+
+      const itemPrices = appData.prices.filter(p => p.itemId === item.id);
+
+      // Calculate Average Price per Qty and find Minimum (Best Price)
+      let minAvg = Infinity;
+      const enrichedPrices = itemPrices.map(p => {
+        const avgPrice = calcAvgPrice(p.totalPrice, p.qtyPerItem, p.totalItems);
+        if (avgPrice < minAvg) {
+          minAvg = avgPrice;
+        }
+        return { ...p, avgPrice };
+      });
+
+      // Header Info Card with Edit Item Button
+      const itemHeaderCard = `
+        <div class="bg-white rounded-2xl p-4 shadow-2xs border border-slate-200/80 flex items-center justify-between gap-3">
+          <div class="min-w-0">
+            <div class="text-[11px] font-bold uppercase tracking-wider text-teal-700">Selected Item 貨品</div>
+            <h2 class="text-lg font-bold text-slate-900 truncate mt-0.5">${escapeHtml(item.name)}</h2>
+            <div class="text-xs text-slate-500 mt-0.5">
+              計算單位 Unit：<span class="font-bold text-slate-700">${escapeHtml(item.unit)}</span>（平均單價顯示為 <span class="font-semibold text-teal-700">Per ${escapeHtml(item.unit)}</span>）
+            </div>
+          </div>
+          <button
+            onclick="navigate('item-edit', { mode: 'edit', itemId: '${item.id}' })"
+            class="shrink-0 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+            <span>編輯貨品</span>
+          </button>
+        </div>
+      `;
+
+      if (enrichedPrices.length === 0) {
+        container.innerHTML = `
+          <div class="screen-fade space-y-4">
+            ${itemHeaderCard}
+            <div class="flex flex-col items-center justify-center text-center py-12 px-4 bg-white rounded-2xl border border-dashed border-slate-300">
+              <div class="w-14 h-14 rounded-full bg-teal-50 text-teal-600 flex items-center justify-center text-2xl mb-3">💰</div>
+              <h3 class="text-base font-bold text-slate-800">未有格價紀錄</h3>
+              <p class="text-xs text-slate-500 mt-1 max-w-xs">點擊右下角「+ 新增格價」輸入不同商店的價錢與數量，系統會自動計算最抵價！</p>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      const cardsHtml = enrichedPrices.map(p => {
+        const isBest = Math.abs(p.avgPrice - minAvg) <= 1e-9;
+        const formattedAvg = formatNumber(p.avgPrice, 4);
+        const totalQty = Number(p.qtyPerItem) * Number(p.totalItems);
+
+        return `
+          <button
+            onclick="navigate('price-edit', { mode: 'edit', itemId: '${item.id}', priceId: '${p.id}' })"
+            class="w-full text-left rounded-2xl p-4 transition active:scale-[0.99] relative overflow-hidden ${
+              isBest
+                ? 'bg-gradient-to-br from-emerald-50 via-white to-teal-50/60 border-2 border-emerald-500 shadow-sm'
+                : 'bg-white border border-slate-200/90 shadow-2xs hover:bg-slate-50/70'
+            }"
+          >
+            <!-- Top Row: Shop Name & Best Price Badge -->
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="text-base font-bold text-slate-900">${escapeHtml(p.shopName)}</span>
+                  ${isBest ? `
+                    <span class="inline-flex items-center gap-1 bg-emerald-600 text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full shadow-2xs">
+                      <span>👍</span>
+                      <span>最抵價 Best Price</span>
+                    </span>
+                  ` : ''}
+                </div>
+                <p class="text-xs text-slate-500 mt-1">
+                  每件 <strong class="text-slate-700">${formatNumber(p.qtyPerItem)} ${escapeHtml(item.unit)}</strong> × <strong class="text-slate-700">${formatNumber(p.totalItems)}</strong> 件 (共 ${formatNumber(totalQty)} ${escapeHtml(item.unit)})
+                </p>
+              </div>
+
+              <div class="text-right shrink-0">
+                <div class="text-[11px] font-medium text-slate-400">Total Price 總價</div>
+                <div class="text-lg font-extrabold text-slate-900">$${formatNumber(p.totalPrice, 2)}</div>
+              </div>
+            </div>
+
+            <!-- Divider & Calculated Average Price per Qty Row -->
+            <div class="mt-3 pt-3 border-t ${isBest ? 'border-emerald-200/70' : 'border-slate-100'} flex items-center justify-between">
+              <div class="flex items-center gap-1.5">
+                <span class="text-xs text-slate-500">平均單價 Average Price:</span>
+              </div>
+              <div class="flex items-baseline gap-1">
+                <span class="text-lg font-extrabold ${isBest ? 'text-emerald-700' : 'text-teal-700'}">
+                  $${formattedAvg}
+                </span>
+                <span class="text-xs font-bold ${isBest ? 'text-emerald-700' : 'text-slate-500'}">
+                  Per ${escapeHtml(item.unit)}
+                </span>
+              </div>
+            </div>
+          </button>
+        `;
+      }).join('');
+
+      container.innerHTML = `
+        <div class="screen-fade space-y-3">
+          ${itemHeaderCard}
+          <div class="flex items-center justify-between px-1 pt-1">
+            <span class="text-xs font-bold text-slate-600">各商店格價比較 (${enrichedPrices.length} 筆)</span>
+            <span class="text-[11px] text-slate-400">點擊紀錄可編輯</span>
+          </div>
+          <div class="space-y-3">
+            ${cardsHtml}
+          </div>
+        </div>
+      `;
+    }
+
+    /**
+     * ----------------------------------------------------------------------------
+     * SCREEN 7: PRICE EDIT (編輯格價)
+     * ----------------------------------------------------------------------------
+     */
+    function renderPriceEdit(container, params = {}) {
+      const item = appData.items.find(i => i.id === params.itemId);
+      if (!item) {
+        navigate('item-list');
+        return;
+      }
+
+      const isEdit = params.mode === 'edit' && params.priceId;
+      const existingPrice = isEdit ? appData.prices.find(p => p.id === params.priceId) : null;
+
+      updateNavigationChrome(
+        'price-edit',
+        isEdit ? '編輯格價 Price Edit' : '新增格價 New Price',
+        `${item.name} (${item.unit})`
+      );
+
+      // Ensure shop list has options (include existingPrice.shopName if shop was deleted earlier)
+      const shopNames = appData.shops.map(s => s.name);
+      if (existingPrice && existingPrice.shopName && !shopNames.includes(existingPrice.shopName)) {
+        shopNames.unshift(existingPrice.shopName);
+      }
+
+      if (shopNames.length === 0) {
+        container.innerHTML = `
+          <div class="screen-fade bg-white rounded-2xl p-6 text-center border border-slate-200 space-y-4">
+            <div class="text-3xl">🏪</div>
+            <h3 class="text-base font-bold text-slate-900">請先建立商店</h3>
+            <p class="text-xs text-slate-500">在新增格價紀錄前，你需要先在「商店列表」建立至少一間商店。</p>
+            <button
+              onclick="navigate('shop-edit', { mode: 'create' })"
+              class="w-full py-3 px-4 rounded-xl bg-teal-600 text-white font-bold text-sm"
+            >
+              立即新增商店
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      const selectedShop = existingPrice ? existingPrice.shopName : shopNames[0];
+      const initQty = existingPrice ? existingPrice.qtyPerItem : '';
+      const initTotalItems = existingPrice ? existingPrice.totalItems : '1';
+      const initTotalPrice = existingPrice ? existingPrice.totalPrice : '';
+
+      container.innerHTML = `
+        <div class="screen-fade space-y-4">
+          <form id="price-form" onsubmit="handleSavePrice(event, '${item.id}', '${isEdit ? existingPrice.id : ''}')" class="bg-white rounded-2xl p-5 shadow-2xs border border-slate-200/80 space-y-4">
+            <!-- 1. Shop Name (Drop-down box, Mandatory) -->
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <label for="price-shop-select" class="block text-sm font-bold text-slate-800">
+                  Shop Name 商店 <span class="text-rose-500">*</span>
+                </label>
+                <button
+                  type="button"
+                  onclick="navigate('shop-edit', { mode: 'create' })"
+                  class="text-xs font-semibold text-teal-700 hover:underline"
+                >
+                  + 新增商店
+                </button>
+              </div>
+              <select
+                id="price-shop-select"
+                required
+                class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 outline-none transition bg-slate-50 focus:bg-white text-slate-900 font-medium"
+              >
+                ${shopNames.map(name => `
+                  <option value="${escapeHtml(name)}" ${name === selectedShop ? 'selected' : ''}>
+                    ${escapeHtml(name)}
+                  </option>
+                `).join('')}
+              </select>
+            </div>
+
+            <!-- 2. Qty per item + Unit (Read-only Label) -->
+            <div class="grid grid-cols-3 gap-3">
+              <div class="col-span-2">
+                <label for="price-qty-input" class="block text-sm font-bold text-slate-800 mb-1.5">
+                  Qty per item 每件數量 <span class="text-rose-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  id="price-qty-input"
+                  step="any"
+                  min="0.0001"
+                  value="${initQty}"
+                  placeholder="例如：250"
+                  required
+                  oninput="updateLivePricePreview('${escapeHtml(item.unit)}')"
+                  class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 outline-none transition bg-slate-50 focus:bg-white text-slate-900"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-bold text-slate-800 mb-1.5">
+                  Unit 單位
+                </label>
+                <div class="w-full px-3 py-3 rounded-xl border border-slate-200 bg-slate-100 text-slate-700 font-bold text-center select-none">
+                  ${escapeHtml(item.unit)}
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. Total items (Numeric Text Field, Mandatory) -->
+            <div>
+              <label for="price-items-input" class="block text-sm font-bold text-slate-800 mb-1.5">
+                Total items 總件數 <span class="text-rose-500">*</span>
+              </label>
+              <input
+                type="number"
+                id="price-items-input"
+                step="any"
+                min="0.0001"
+                value="${initTotalItems}"
+                placeholder="例如：1 或 4"
+                required
+                oninput="updateLivePricePreview('${escapeHtml(item.unit)}')"
+                class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 outline-none transition bg-slate-50 focus:bg-white text-slate-900"
+              />
+            </div>
+
+            <!-- 4. Total Price (Numeric Text Field, Mandatory) -->
+            <div>
+              <label for="price-total-input" class="block text-sm font-bold text-slate-800 mb-1.5">
+                Total Price 總價 ($) <span class="text-rose-500">*</span>
+              </label>
+              <input
+                type="number"
+                id="price-total-input"
+                step="any"
+                min="0"
+                value="${initTotalPrice}"
+                placeholder="例如：18"
+                required
+                oninput="updateLivePricePreview('${escapeHtml(item.unit)}')"
+                class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 outline-none transition bg-slate-50 focus:bg-white text-slate-900"
+              />
+            </div>
+
+            <!-- Live Real-Time Average Price Calculation Box -->
+            <div class="rounded-2xl bg-teal-50/90 border border-teal-200 p-4">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-teal-800">即時計算平均單價 (Average Price per Qty)</span>
+                <span class="text-[11px] text-teal-600 font-medium">Total Price ÷ (Qty × Items)</span>
+              </div>
+              <div class="mt-2 flex items-baseline justify-between">
+                <div id="live-avg-value" class="text-2xl font-extrabold text-teal-900">$0</div>
+                <div class="text-sm font-bold text-teal-700">Per ${escapeHtml(item.unit)}</div>
+              </div>
+            </div>
+
+            <p id="price-error" class="text-xs text-rose-600 font-medium hidden"></p>
+
+            <!-- Save & Delete Buttons -->
+            <div class="pt-1 flex flex-col gap-2.5">
+              <button
+                type="submit"
+                class="w-full py-3.5 px-4 rounded-xl bg-teal-600 hover:bg-teal-700 active:scale-[0.99] text-white font-bold text-base shadow-sm transition"
+              >
+                儲存 Save
+              </button>
+
+              ${isEdit ? `
+                <button
+                  type="button"
+                  onclick="handleDeletePrice('${existingPrice.id}')"
+                  class="w-full py-3 px-4 rounded-xl bg-rose-50 hover:bg-rose-100 active:scale-[0.99] text-rose-600 font-bold text-sm transition"
+                >
+                  刪除格價紀錄 Delete
+                </button>
+              ` : ''}
+            </div>
+          </form>
+        </div>
+      `;
+
+      updateLivePricePreview(item.unit);
+    }
+
+    function updateLivePricePreview(unit) {
+      const qty = parseFloat(document.getElementById('price-qty-input')?.value);
+      const items = parseFloat(document.getElementById('price-items-input')?.value);
+      const total = parseFloat(document.getElementById('price-total-input')?.value);
+      const displayEl = document.getElementById('live-avg-value');
+
+      if (!displayEl) return;
+
+      if (qty > 0 && items > 0 && total >= 0) {
+        const avg = calcAvgPrice(total, qty, items);
+        displayEl.textContent = `$${formatNumber(avg, 4)}`;
+      } else {
+        displayEl.textContent = '$0';
+      }
+    }
+
+    function handleSavePrice(e, itemId, priceId) {
+      e.preventDefault();
+      const shopName = document.getElementById('price-shop-select').value;
+      const qtyPerItem = parseFloat(document.getElementById('price-qty-input').value);
+      const totalItems = parseFloat(document.getElementById('price-items-input').value);
+      const totalPrice = parseFloat(document.getElementById('price-total-input').value);
+      const errEl = document.getElementById('price-error');
+
+      if (!shopName) {
+        errEl.textContent = '請選擇商店 (Shop Name)';
+        errEl.classList.remove('hidden');
+        return;
+      }
+      if (isNaN(qtyPerItem) || qtyPerItem <= 0) {
+        errEl.textContent = '請輸入大於 0 的「每件數量 (Qty per item)」';
+        errEl.classList.remove('hidden');
+        return;
+      }
+      if (isNaN(totalItems) || totalItems <= 0) {
+        errEl.textContent = '請輸入大於 0 的「總件數 (Total items)」';
+        errEl.classList.remove('hidden');
+        return;
+      }
+      if (isNaN(totalPrice) || totalPrice < 0) {
+        errEl.textContent = '請輸入有效的「總價 (Total Price)」';
+        errEl.classList.remove('hidden');
+        return;
+      }
+
+      if (priceId) {
+        const target = appData.prices.find(p => p.id === priceId);
+        if (target) {
+          target.shopName = shopName;
+          target.qtyPerItem = qtyPerItem;
+          target.totalItems = totalItems;
+          target.totalPrice = totalPrice;
+        }
+        showToast('格價紀錄已更新', '✅');
+      } else {
+        appData.prices.push({
+          id: generateId('price'),
+          itemId,
+          shopName,
+          qtyPerItem,
+          totalItems,
+          totalPrice
+        });
+        showToast('已新增格價紀錄', '✅');
+      }
+
+      saveData();
+      goBack();
+    }
+
+    function handleDeletePrice(priceId) {
+      showModal({
+        title: '刪除格價紀錄 Delete',
+        message: '確定要刪除此筆格價紀錄嗎？',
+        confirmText: '確定刪除',
+        isDanger: true,
+        onConfirm: () => {
+          appData.prices = appData.prices.filter(p => p.id !== priceId);
+          saveData();
+          showToast('已刪除格價紀錄', '🗑️');
+          goBack();
+        }
+      });
+    }
+
+    /**
+     * ----------------------------------------------------------------------------
+     * SCREEN 8: IMPORT / EXPORT (資料匯入 / 匯出 - Tab-delimited CSV/TSV)
+     * ----------------------------------------------------------------------------
+     */
+    function generateTabDelimitedExport() {
+      // Structured Tab-delimited format supporting Shops, Items, and Prices cleanly
+      const lines = [];
+      lines.push(['RECORD_TYPE', 'SHOP_NAME', 'ITEM_NAME', 'UNIT', 'QTY_PER_ITEM', 'TOTAL_ITEMS', 'TOTAL_PRICE', 'AVG_PRICE_PER_QTY'].join('\t'));
+
+      appData.shops.forEach(s => {
+        lines.push(['SHOP', s.name, '', '', '', '', '', ''].join('\t'));
+      });
+
+      appData.items.forEach(i => {
+        lines.push(['ITEM', '', i.name, i.unit, '', '', '', ''].join('\t'));
+      });
+
+      appData.prices.forEach(p => {
+        const item = appData.items.find(i => i.id === p.itemId);
+        const itemName = item ? item.name : 'Unknown';
+        const unit = item ? item.unit : '';
+        const avg = formatNumber(calcAvgPrice(p.totalPrice, p.qtyPerItem, p.totalItems), 4);
+        lines.push([
+          'PRICE',
+          p.shopName,
+          itemName,
+          unit,
+          p.qtyPerItem,
+          p.totalItems,
+          p.totalPrice,
+          avg
+        ].join('\t'));
+      });
+
+      return lines.join('\n');
+    }
+
+    function renderImportExport(container) {
+      updateNavigationChrome('import-export', '匯入 / 匯出 Import & Export', 'Tab-delimited CSV 備份與還原');
+
+      const previewTsv = generateTabDelimitedExport();
+
+      container.innerHTML = `
+        <div class="screen-fade space-y-4">
+          <!-- Section 1: Export (匯出) -->
+          <div class="bg-white rounded-2xl p-5 shadow-2xs border border-slate-200/80 space-y-3">
+            <div class="flex items-center gap-2.5">
+              <div class="w-10 h-10 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center shrink-0">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+              </div>
+              <div>
+                <h2 class="text-base font-bold text-slate-900">匯出資料 Export</h2>
+                <p class="text-xs text-slate-500">匯出所有商店、貨品及格價紀錄至 Tab 分隔檔案</p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+              <button
+                onclick="handleExportDownload()"
+                class="w-full py-3 px-4 rounded-xl bg-teal-600 hover:bg-teal-700 active:scale-[0.99] text-white font-bold text-sm shadow-xs transition flex items-center justify-center gap-2"
+              >
+                <span>📥 下載 Tab-delimited CSV</span>
+              </button>
+
+              <button
+                onclick="handleCopyExport()"
+                class="w-full py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-[0.99] text-slate-800 font-bold text-sm transition flex items-center justify-center gap-2"
+              >
+                <span>📋 複製內容到剪貼簿</span>
+              </button>
+            </div>
+
+            <div class="pt-1">
+              <label class="block text-[11px] font-bold text-slate-500 mb-1">匯出內容預覽 (Tab-delimited):</label>
+              <textarea
+                id="export-preview-box"
+                readonly
+                rows="4"
+                class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono text-slate-700 whitespace-pre overflow-x-auto"
+              >${escapeHtml(previewTsv)}</textarea>
+            </div>
+          </div>
+
+          <!-- Section 2: Import (匯入) -->
+          <div class="bg-white rounded-2xl p-5 shadow-2xs border border-slate-200/80 space-y-3">
+            <div class="flex items-center gap-2.5">
+              <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+              </div>
+              <div>
+                <h2 class="text-base font-bold text-slate-900">匯入資料 Import</h2>
+                <p class="text-xs text-slate-500">從 Tab-delimited 檔案或貼上文字還原紀錄</p>
+              </div>
+            </div>
+
+            <div class="bg-amber-50 border border-amber-200/80 rounded-xl p-3 text-xs text-amber-800 leading-relaxed">
+              ⚠️ <strong>注意：</strong>匯入將會清空現有所有資料並載入新資料 (Clean up all records in this App and import records from Tab-delimited file)。
+            </div>
+
+            <!-- File Input -->
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1.5">方法 1：選擇 Tab-delimited 檔案 (.csv / .tsv / .txt)</label>
+              <input
+                type="file"
+                id="import-file-input"
+                accept=".csv,.tsv,.txt,text/tab-separated-values,text/plain"
+                onchange="handleFileSelected(event)"
+                class="block w-full text-xs text-slate-600 file:mr-3 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100 border border-slate-200 rounded-xl p-1.5 bg-slate-50"
+              />
+            </div>
+
+            <!-- Paste Area -->
+            <div>
+              <label for="import-paste-box" class="block text-xs font-bold text-slate-700 mb-1.5">方法 2：直接貼上 Tab-delimited 文字</label>
+              <textarea
+                id="import-paste-box"
+                rows="4"
+                placeholder="在此貼上 Tab 分隔資料..."
+                class="w-full p-3 rounded-xl bg-slate-50 border border-slate-300 focus:border-teal-600 outline-none text-xs font-mono text-slate-800 whitespace-pre overflow-x-auto"
+              ></textarea>
+            </div>
+
+            <button
+              onclick="triggerImportConfirm()"
+              class="w-full py-3.5 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 active:scale-[0.99] text-white font-bold text-sm shadow-xs transition"
+            >
+              開始匯入並覆蓋現有資料 Import
+            </button>
+          </div>
+
+          <!-- Reset to Sample Data Convenience Button -->
+          <div class="pt-2 pb-4 text-center space-y-2">
+            <div>
+              <a
+                href="https://docs.google.com/forms/d/e/1FAIpQLSeE4JjIUKVYS5yvHVtsjC8pCuUKNSCICl3SkcrhQTRR5E0FlA/viewform?usp=publish-editor"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center gap-1.5 text-xs font-bold text-teal-700 hover:underline py-1.5 px-3"
+              >
+                <span>✉️ 聯絡設計師 / 意見回饋 (Google Form)</span>
+              </a>
+            </div>
+            <button
+              onclick="handleResetDefaultData()"
+              class="text-xs font-semibold text-slate-400 hover:text-slate-600 underline py-2 px-4"
+            >
+              重設為預設範例資料 (Wellcome / Parkin 範例)
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function handleExportDownload() {
+      try {
+        const tsvContent = generateTabDelimitedExport();
+        // Add UTF-8 BOM so Excel / Numbers on iPhone & Windows opens Traditional Chinese cleanly
+        const blob = new Blob(['\uFEFF' + tsvContent], { type: 'text/tab-separated-values;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        const dateStr = new Date().toISOString().slice(0, 10);
+        link.href = url;
+        link.download = `price_comparison_${dateStr}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        showToast('已匯出 Tab-delimited 檔案', '📥');
+      } catch (err) {
+        console.error('Export error:', err);
+        showToast('匯出失敗，請使用複製功能', '⚠️');
+      }
+    }
+
+    function handleCopyExport() {
+      const textarea = document.getElementById('export-preview-box');
+      if (!textarea) return;
+      textarea.select();
+      textarea.setSelectionRange(0, 99999);
+      try {
+        document.execCommand('copy');
+        showToast('已複製所有資料到剪貼簿', '📋');
+      } catch (err) {
+        showToast('複製失敗，請手動全選複製', '⚠️');
+      }
+    }
+
+    function handleFileSelected(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const text = e.target?.result || '';
+        const pasteBox = document.getElementById('import-paste-box');
+        if (pasteBox) {
+          pasteBox.value = text;
+          showToast('已讀取檔案內容，請點擊「開始匯入」', '📄');
+        }
+      };
+      reader.readAsText(file, 'UTF-8');
+    }
+
+    function triggerImportConfirm() {
+      const rawText = document.getElementById('import-paste-box')?.value?.trim();
+      if (!rawText) {
+        showToast('請先選擇檔案或貼上匯入內容', '⚠️');
+        return;
+      }
+
+      showModal({
+        title: '確認匯入資料 Confirm Import',
+        message: '匯入將會清空現有所有資料並載入新資料 (Clean up all records in this App and import records from Tab-delimited file)。確定繼續嗎？',
+        confirmText: '確定清空並匯入',
+        isDanger: true,
+        onConfirm: () => {
+          executeTabDelimitedImport(rawText);
+        }
+      });
+    }
+
+    function executeTabDelimitedImport(rawText) {
+      try {
+        // Strip optional UTF-8 BOM
+        const cleanText = rawText.replace(/^\uFEFF/, '');
+        const lines = cleanText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+
+        const newShops = [];
+        const newItems = [];
+        const newPrices = [];
+
+        const ensureShop = (shopName) => {
+          const clean = (shopName || '').trim();
+          if (!clean) return;
+          if (!newShops.some(s => s.name.toLowerCase() === clean.toLowerCase())) {
+            newShops.push({ id: generateId('shop'), name: clean });
+          }
+        };
+
+        const ensureItem = (itemName, unit) => {
+          const cleanName = (itemName || '').trim();
+          const cleanUnit = (unit || 'pcs').trim();
+          if (!cleanName) return null;
+          let found = newItems.find(i => i.name.toLowerCase() === cleanName.toLowerCase());
+          if (!found) {
+            found = { id: generateId('item'), name: cleanName, unit: cleanUnit || 'pcs' };
+            newItems.push(found);
+          }
+          return found;
+        };
+
+        lines.forEach((line, idx) => {
+          const cols = line.split('\t');
+          const firstCol = (cols[0] || '').trim().toUpperCase();
+
+          // Skip header row
+          if (idx === 0 && (firstCol === 'RECORD_TYPE' || firstCol === 'SHOP_NAME' || firstCol === 'SHOP')) {
+            if (cols[1] && cols[1].toUpperCase() === 'SHOP_NAME') return;
+            if (firstCol === 'RECORD_TYPE') return;
+          }
+
+          if (firstCol === 'SHOP') {
+            ensureShop(cols[1]);
+          } else if (firstCol === 'ITEM') {
+            ensureItem(cols[2], cols[3]);
+          } else if (firstCol === 'PRICE') {
+            const shopName = (cols[1] || '').trim();
+            const itemName = (cols[2] || '').trim();
+            const unit = (cols[3] || 'pcs').trim();
+            const qtyPerItem = parseFloat(cols[4]);
+            const totalItems = parseFloat(cols[5]);
+            const totalPrice = parseFloat(cols[6]);
+
+            if (shopName && itemName && qtyPerItem > 0 && totalItems > 0 && !isNaN(totalPrice)) {
+              ensureShop(shopName);
+              const itemObj = ensureItem(itemName, unit);
+              if (itemObj) {
+                newPrices.push({
+                  id: generateId('price'),
+                  itemId: itemObj.id,
+                  shopName,
+                  qtyPerItem,
+                  totalItems,
+                  totalPrice
+                });
+              }
+            }
+          } else {
+            // Also support flat 6-column Tab-delimited rows:
+            // [Shop Name, Item Name, Unit, Qty per item, Total items, Total Price]
+            const shopName = (cols[0] || '').trim();
+            const itemName = (cols[1] || '').trim();
+            const unit = (cols[2] || 'pcs').trim();
+            const qtyPerItem = parseFloat(cols[3]);
+            const totalItems = parseFloat(cols[4]);
+            const totalPrice = parseFloat(cols[5]);
+
+            if (shopName && itemName && qtyPerItem > 0 && totalItems > 0 && !isNaN(totalPrice)) {
+              ensureShop(shopName);
+              const itemObj = ensureItem(itemName, unit);
+              if (itemObj) {
+                newPrices.push({
+                  id: generateId('price'),
+                  itemId: itemObj.id,
+                  shopName,
+                  qtyPerItem,
+                  totalItems,
+                  totalPrice
+                });
+              }
+            }
+          }
+        });
+
+        if (newShops.length === 0 && newItems.length === 0 && newPrices.length === 0) {
+          showToast('未能識別有效資料，請檢查 Tab 分隔格式', '⚠️');
+          return;
+        }
+
+        // Clean up all existing records and replace with imported data
+        appData = {
+          shops: newShops,
+          items: newItems,
+          prices: newPrices
+        };
+        saveData();
+        showToast(`成功匯入 ${newShops.length} 商店, ${newItems.length} 貨品, ${newPrices.length} 格價`, '✅');
+        render();
+      } catch (err) {
+        console.error('Import parse error:', err);
+        showToast('匯入時發生錯誤，請檢查檔案格式', '⚠️');
+      }
+    }
+
+    function handleResetDefaultData() {
+      showModal({
+        title: '重設為範例資料',
+        message: '這將會清除現有紀錄並還原預設的 Wellcome / Parkin 與 Green tea powder 範例資料，確定繼續嗎？',
+        confirmText: '確定重設',
+        isDanger: true,
+        onConfirm: () => {
+          appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
+          saveData();
+          showToast('已還原預設範例資料', '✅');
+          render();
+        }
+      });
+    }
+
+    /**
+     * ============================================================================
+     * APP INITIALIZATION
+     * ============================================================================
+     */
+    window.addEventListener('DOMContentLoaded', () => {
+      loadData();
+      render();
+    });
+  </script>
+</body>
+</html>
