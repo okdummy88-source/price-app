@@ -327,6 +327,10 @@
     let navStack = [{ screen: 'home', params: {} }];
     let showInstallGuide = false;
     let itemSearchQuery = '';
+    let shopSearchQuery = '';
+    let shopSortOrder = 'default'; // 'default' | 'asc' | 'desc'
+    let priceSortBy = 'avgPrice'; // 'avgPrice' | 'shop'
+    let priceShopSearchQuery = '';
 
     function loadData() {
       try {
@@ -378,6 +382,20 @@
       // Format cleanly up to maxDecimals without trailing zeros
       const fixed = Number(num).toFixed(maxDecimals);
       return parseFloat(fixed).toString();
+    }
+
+    function formatTimestamp(isoStr) {
+      if (!isoStr) return '';
+      const d = new Date(isoStr);
+      if (isNaN(d.getTime())) return '';
+      const pad = (n) => String(n).padStart(2, '0');
+      const yyyy = d.getFullYear();
+      const mm = pad(d.getMonth() + 1);
+      const dd = pad(d.getDate());
+      const hh = pad(d.getHours());
+      const min = pad(d.getMinutes());
+      const ss = pad(d.getSeconds());
+      return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
     }
 
     function escapeHtml(str) {
@@ -758,33 +776,53 @@
      * SCREEN 2: SHOP LIST (商店列表)
      * ----------------------------------------------------------------------------
      */
-    function renderShopList(container) {
-      updateNavigationChrome('shop-list', '商店列表 Shop List', `共 ${appData.shops.length} 間商店`);
+    function getSortedFilteredShops() {
+      const q = (shopSearchQuery || '').trim().toLowerCase();
+      let list = q
+        ? appData.shops.filter(shop => (shop.name || '').toLowerCase().includes(q))
+        : [...appData.shops];
 
-      setFAB(`
-        <button
-          onclick="navigate('shop-edit', { mode: 'create' })"
-          class="pointer-events-auto flex items-center gap-2 bg-teal-600 hover:bg-teal-700 active:scale-95 text-white font-bold px-5 py-3.5 rounded-full shadow-lg shadow-teal-700/30 transition"
-        >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-          <span>新增商店</span>
-        </button>
-      `);
+      if (shopSortOrder === 'asc') {
+        list.sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base', numeric: true }));
+      } else if (shopSortOrder === 'desc') {
+        list.sort((a, b) => (b.name || '').localeCompare(a.name || '', undefined, { sensitivity: 'base', numeric: true }));
+      }
+
+      return list;
+    }
+
+    function buildShopListItemsHtml() {
+      const q = (shopSearchQuery || '').trim();
+      const filtered = getSortedFilteredShops();
 
       if (appData.shops.length === 0) {
-        container.innerHTML = `
-          <div class="screen-fade flex flex-col items-center justify-center text-center py-16 px-4">
+        return `
+          <div class="flex flex-col items-center justify-center text-center py-16 px-4">
             <div class="w-16 h-16 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center text-3xl mb-3">🏪</div>
             <h3 class="text-base font-bold text-slate-800">暫時未有商店紀錄</h3>
             <p class="text-xs text-slate-500 mt-1 max-w-xs">點擊右下角「+ 新增商店」建立你的第一個商店（例如：Wellcome、Parkin）</p>
           </div>
         `;
-        return;
       }
 
-      const listHtml = appData.shops.map(shop => {
+      if (filtered.length === 0) {
+        return `
+          <div class="flex flex-col items-center justify-center text-center py-12 px-4 bg-white rounded-2xl border border-dashed border-slate-300">
+            <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center text-2xl mb-2.5">🔍</div>
+            <h3 class="text-sm font-bold text-slate-800">找不到符合「${escapeHtml(q)}」的商店</h3>
+            <p class="text-xs text-slate-500 mt-1">請嘗試其他商店名稱關鍵字，或點擊清除搜尋</p>
+            <button
+              type="button"
+              onclick="clearShopSearch()"
+              class="mt-3 px-4 py-2 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-700 text-xs font-bold transition"
+            >
+              清除搜尋
+            </button>
+          </div>
+        `;
+      }
+
+      const listHtml = filtered.map(shop => {
         const count = appData.prices.filter(p => p.shopName === shop.name).length;
         return `
           <button
@@ -810,10 +848,146 @@
         `;
       }).join('');
 
-      container.innerHTML = `
-        <div class="screen-fade space-y-2.5">
-          <div class="text-xs font-medium text-slate-500 px-1">點擊商店名稱可進行修改或刪除：</div>
+      const countLabel = q
+        ? `搜尋結果：顯示 ${filtered.length} / ${appData.shops.length} 間商店`
+        : `點擊商店名稱可進行修改或刪除（共 ${appData.shops.length} 間）：`;
+
+      return `
+        <div class="text-xs font-medium text-slate-500 px-1">${countLabel}</div>
+        <div class="space-y-2.5">
           ${listHtml}
+        </div>
+      `;
+    }
+
+    function refreshShopListResults() {
+      const resultsEl = document.getElementById('shop-list-results');
+      if (resultsEl) {
+        resultsEl.innerHTML = buildShopListItemsHtml();
+      }
+    }
+
+    function handleShopSearchInput(val) {
+      shopSearchQuery = val || '';
+      const clearBtn = document.getElementById('shop-search-clear-btn');
+      if (clearBtn) {
+        if (shopSearchQuery.length > 0) {
+          clearBtn.classList.remove('hidden');
+          clearBtn.classList.add('flex');
+        } else {
+          clearBtn.classList.add('hidden');
+          clearBtn.classList.remove('flex');
+        }
+      }
+      refreshShopListResults();
+    }
+
+    function clearShopSearch() {
+      shopSearchQuery = '';
+      const input = document.getElementById('shop-search-input');
+      if (input) {
+        input.value = '';
+        input.focus();
+      }
+      handleShopSearchInput('');
+    }
+
+    function setShopSort(order) {
+      if (order === 'default' || order === 'asc' || order === 'desc') {
+        shopSortOrder = order;
+        renderShopList(document.getElementById('main-content'));
+      }
+    }
+
+    function renderShopList(container) {
+      updateNavigationChrome('shop-list', '商店列表 Shop List', `共 ${appData.shops.length} 間商店`);
+
+      setFAB(`
+        <button
+          onclick="navigate('shop-edit', { mode: 'create' })"
+          class="pointer-events-auto flex items-center gap-2 bg-teal-600 hover:bg-teal-700 active:scale-95 text-white font-bold px-5 py-3.5 rounded-full shadow-lg shadow-teal-700/30 transition"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+          <span>新增商店</span>
+        </button>
+      `);
+
+      const hasQuery = (shopSearchQuery || '').length > 0;
+
+      container.innerHTML = `
+        <div class="screen-fade space-y-3">
+          <!-- Search Shop Name Bar -->
+          <div class="relative flex items-center bg-white rounded-2xl border border-slate-200/90 shadow-2xs focus-within:border-teal-600 focus-within:ring-2 focus-within:ring-teal-600/20 transition">
+            <div class="pl-3.5 pr-2 text-slate-400 pointer-events-none flex items-center">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 105.5 5.5a7.5 7.5 0 0011.15 11.15z" />
+              </svg>
+            </div>
+            <input
+              type="search"
+              id="shop-search-input"
+              value="${escapeHtml(shopSearchQuery)}"
+              oninput="handleShopSearchInput(this.value)"
+              placeholder="搜尋商店名稱 Search shop name..."
+              autocomplete="off"
+              class="w-full py-3 pr-9 bg-transparent outline-none text-slate-900 placeholder:text-slate-400"
+            />
+            <button
+              type="button"
+              id="shop-search-clear-btn"
+              onclick="clearShopSearch()"
+              aria-label="清除搜尋"
+              class="${hasQuery ? 'flex' : 'hidden'} absolute right-2.5 w-6 h-6 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 items-center justify-center text-xs font-bold transition"
+            >
+              ✕
+            </button>
+          </div>
+
+          <!-- Sort by Shop Name Controls -->
+          <div class="flex items-center justify-between gap-2 px-1 flex-wrap">
+            <span class="text-xs font-bold text-slate-600">排序 Sort by Shop Name</span>
+            <div class="inline-flex items-center bg-slate-200/80 p-0.5 rounded-xl border border-slate-300/60" role="group" aria-label="商店名稱排序">
+              <button
+                type="button"
+                onclick="setShopSort('default')"
+                class="px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                  shopSortOrder === 'default'
+                    ? 'bg-teal-700 text-white shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }"
+              >
+                預設 Default
+              </button>
+              <button
+                type="button"
+                onclick="setShopSort('asc')"
+                class="px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                  shopSortOrder === 'asc'
+                    ? 'bg-teal-700 text-white shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }"
+              >
+                A → Z / 筆畫少
+              </button>
+              <button
+                type="button"
+                onclick="setShopSort('desc')"
+                class="px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                  shopSortOrder === 'desc'
+                    ? 'bg-teal-700 text-white shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }"
+              >
+                Z → A / 筆畫多
+              </button>
+            </div>
+          </div>
+
+          <div id="shop-list-results" class="space-y-2.5">
+            ${buildShopListItemsHtml()}
+          </div>
         </div>
       `;
     }
@@ -903,11 +1077,13 @@
         return;
       }
 
+      const nowIso = new Date().toISOString();
       if (shopId) {
         const target = appData.shops.find(s => s.id === shopId);
         if (target) {
           const oldName = target.name;
           target.name = name;
+          target.updatedAt = nowIso;
           // Cascade rename to associated price records
           appData.prices.forEach(p => {
             if (p.shopName === oldName) {
@@ -919,7 +1095,8 @@
       } else {
         appData.shops.push({
           id: generateId('shop'),
-          name
+          name,
+          updatedAt: nowIso
         });
         showToast('已新增商店', '✅');
       }
@@ -1010,10 +1187,10 @@
           });
 
           bestBadgeHtml = `
-            <div class="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200/80 text-emerald-800 px-2.5 py-1 rounded-lg text-xs font-semibold mt-2">
-              <span>👍</span>
+            <div class="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-200/80 text-emerald-800 px-3 py-1.5 rounded-xl text-sm sm:text-base font-bold mt-2 flex-wrap">
+              <span class="text-base">👍</span>
               <span>最抵: $${formatNumber(minAvg)} / ${escapeHtml(item.unit)}</span>
-              <span class="text-emerald-600 font-normal">(${escapeHtml(bestShops.join(', '))})</span>
+              <span class="text-emerald-700 font-semibold">(${escapeHtml(bestShops.join(', '))})</span>
             </div>
           `;
         }
@@ -1160,7 +1337,7 @@
         isEdit ? existingItem?.name : '建立新格價貨品'
       );
 
-      const commonUnits = ['g', 'kg', 'ml', 'L', 'pcs', '包', '罐', '支'];
+      const commonUnits = ['g', 'kg', 'ml', 'L', 'pcs', '包', '罐', '支', '粒', '塊', '樽'];
 
       container.innerHTML = `
         <div class="screen-fade space-y-4">
@@ -1252,11 +1429,13 @@
         return;
       }
 
+      const nowIso = new Date().toISOString();
       if (itemId) {
         const target = appData.items.find(i => i.id === itemId);
         if (target) {
           target.name = name;
           target.unit = unit;
+          target.updatedAt = nowIso;
         }
         saveData();
         showToast('貨品資料已更新', '✅');
@@ -1265,7 +1444,8 @@
         const newItem = {
           id: generateId('item'),
           name,
-          unit
+          unit,
+          updatedAt: nowIso
         };
         appData.items.push(newItem);
         saveData();
@@ -1300,76 +1480,31 @@
      * SCREEN 6: PRICE LIST (格價列表 for a selected Item)
      * ----------------------------------------------------------------------------
      */
-    function renderPriceList(container, params = {}) {
-      const item = appData.items.find(i => i.id === params.itemId);
-      if (!item) {
-        navigate('item-list');
-        return;
-      }
+    function buildPriceCardsHtml(item, visiblePrices, totalCount, minAvg) {
+      const q = (priceShopSearchQuery || '').trim();
 
-      updateNavigationChrome('price-list', item.name, `單位 Unit: ${item.unit}`);
-
-      setFAB(`
-        <button
-          onclick="navigate('price-edit', { mode: 'create', itemId: '${item.id}' })"
-          class="pointer-events-auto flex items-center gap-2 bg-teal-600 hover:bg-teal-700 active:scale-95 text-white font-bold px-5 py-3.5 rounded-full shadow-lg shadow-teal-700/30 transition"
-        >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-          <span>新增格價</span>
-        </button>
-      `);
-
-      const itemPrices = appData.prices.filter(p => p.itemId === item.id);
-
-      // Calculate Average Price per Qty and find Minimum (Best Price)
-      let minAvg = Infinity;
-      const enrichedPrices = itemPrices.map(p => {
-        const avgPrice = calcAvgPrice(p.totalPrice, p.qtyPerItem, p.totalItems);
-        if (avgPrice < minAvg) {
-          minAvg = avgPrice;
-        }
-        return { ...p, avgPrice };
-      });
-
-      // Header Info Card with Edit Item Button
-      const itemHeaderCard = `
-        <div class="bg-white rounded-2xl p-4 shadow-2xs border border-slate-200/80 flex items-center justify-between gap-3">
-          <div class="min-w-0">
-            <div class="text-[11px] font-bold uppercase tracking-wider text-teal-700">Selected Item 貨品</div>
-            <h2 class="text-lg font-bold text-slate-900 truncate mt-0.5">${escapeHtml(item.name)}</h2>
-            <div class="text-xs text-slate-500 mt-0.5">
-              計算單位 Unit：<span class="font-bold text-slate-700">${escapeHtml(item.unit)}</span>（平均單價顯示為 <span class="font-semibold text-teal-700">Per ${escapeHtml(item.unit)}</span>）
-            </div>
-          </div>
-          <button
-            onclick="navigate('item-edit', { mode: 'edit', itemId: '${item.id}' })"
-            class="shrink-0 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition"
-          >
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-            </svg>
-            <span>編輯貨品</span>
-          </button>
-        </div>
-      `;
-
-      if (enrichedPrices.length === 0) {
-        container.innerHTML = `
-          <div class="screen-fade space-y-4">
-            ${itemHeaderCard}
-            <div class="flex flex-col items-center justify-center text-center py-12 px-4 bg-white rounded-2xl border border-dashed border-slate-300">
-              <div class="w-14 h-14 rounded-full bg-teal-50 text-teal-600 flex items-center justify-center text-2xl mb-3">💰</div>
-              <h3 class="text-base font-bold text-slate-800">未有格價紀錄</h3>
-              <p class="text-xs text-slate-500 mt-1 max-w-xs">點擊右下角「+ 新增格價」輸入不同商店的價錢與數量，系統會自動計算最抵價！</p>
-            </div>
+      if (visiblePrices.length === 0) {
+        return `
+          <div class="flex flex-col items-center justify-center text-center py-10 px-4 bg-white rounded-2xl border border-dashed border-slate-300">
+            <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center text-2xl mb-2.5">🔍</div>
+            <h3 class="text-sm font-bold text-slate-800">找不到符合「${escapeHtml(q)}」的商店格價</h3>
+            <p class="text-xs text-slate-500 mt-1">請嘗試其他商店名稱關鍵字，或點擊清除搜尋</p>
+            <button
+              type="button"
+              onclick="clearPriceShopSearch('${item.id}')"
+              class="mt-3 px-4 py-2 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-700 text-xs font-bold transition"
+            >
+              清除搜尋
+            </button>
           </div>
         `;
-        return;
       }
 
-      const cardsHtml = enrichedPrices.map(p => {
+      const summaryText = q
+        ? `各商店格價比較 (顯示 ${visiblePrices.length} / ${totalCount} 筆)`
+        : `各商店格價比較 (${totalCount} 筆)`;
+
+      const cardsHtml = visiblePrices.map(p => {
         const isBest = Math.abs(p.avgPrice - minAvg) <= 1e-9;
         const formattedAvg = formatNumber(p.avgPrice, 4);
         const totalQty = Number(p.qtyPerItem) * Number(p.totalItems);
@@ -1395,8 +1530,8 @@
                     </span>
                   ` : ''}
                 </div>
-                <p class="text-xs text-slate-500 mt-1">
-                  每件 <strong class="text-slate-700">${formatNumber(p.qtyPerItem)} ${escapeHtml(item.unit)}</strong> × <strong class="text-slate-700">${formatNumber(p.totalItems)}</strong> 件 (共 ${formatNumber(totalQty)} ${escapeHtml(item.unit)})
+                <p class="text-sm sm:text-base text-slate-600 mt-1.5 font-medium">
+                  每件 <strong class="text-slate-800 font-bold">${formatNumber(p.qtyPerItem)} ${escapeHtml(item.unit)}</strong> × <strong class="text-slate-800 font-bold">${formatNumber(p.totalItems)}</strong> 件 (共 ${formatNumber(totalQty)} ${escapeHtml(item.unit)})
                 </p>
               </div>
 
@@ -1420,22 +1555,244 @@
                 </span>
               </div>
             </div>
+
+            <div class="mt-2 flex items-center justify-between gap-2 text-[11px]">
+              <span class="inline-flex items-center px-2 py-0.5 rounded-md font-bold ${
+                p.avgRank === 1
+                  ? 'bg-emerald-100 text-emerald-800'
+                  : 'bg-slate-100 text-slate-600'
+              }">Rank ${p.avgRank}</span>
+              ${p.updatedAt ? `
+                <span class="font-mono text-slate-400">${escapeHtml(formatTimestamp(p.updatedAt))}</span>
+              ` : '<span></span>'}
+            </div>
           </button>
         `;
       }).join('');
 
+      return `
+        <div class="flex items-center gap-2 px-1">
+          <span id="price-list-summary-text" class="text-xs font-bold text-slate-600">${summaryText}</span>
+          <span class="text-[11px] text-slate-400">點擊可編輯</span>
+        </div>
+        <div class="space-y-3">
+          ${cardsHtml}
+        </div>
+      `;
+    }
+
+    function handlePriceShopSearchInput(val, itemId) {
+      priceShopSearchQuery = val || '';
+      const clearBtn = document.getElementById('price-shop-search-clear-btn');
+      if (clearBtn) {
+        if (priceShopSearchQuery.length > 0) {
+          clearBtn.classList.remove('hidden');
+          clearBtn.classList.add('flex');
+        } else {
+          clearBtn.classList.add('hidden');
+          clearBtn.classList.remove('flex');
+        }
+      }
+      const resultsEl = document.getElementById('price-list-results');
+      const item = appData.items.find(i => i.id === itemId);
+      if (resultsEl && item) {
+        const computed = getComputedItemPrices(item);
+        resultsEl.innerHTML = buildPriceCardsHtml(item, computed.filteredSorted, computed.totalCount, computed.minAvg);
+      }
+    }
+
+    function clearPriceShopSearch(itemId) {
+      priceShopSearchQuery = '';
+      const input = document.getElementById('price-shop-search-input');
+      if (input) {
+        input.value = '';
+        input.focus();
+      }
+      handlePriceShopSearchInput('', itemId);
+    }
+
+    function getComputedItemPrices(item) {
+      const itemPrices = appData.prices.filter(p => p.itemId === item.id);
+
+      let minAvg = Infinity;
+      const enrichedPrices = itemPrices.map(p => {
+        const avgPrice = calcAvgPrice(p.totalPrice, p.qtyPerItem, p.totalItems);
+        if (avgPrice < minAvg) {
+          minAvg = avgPrice;
+        }
+        return { ...p, avgPrice };
+      });
+
+      const avgPriceSorted = [...enrichedPrices].sort((a, b) => {
+        const priceDiff = a.avgPrice - b.avgPrice;
+        if (Math.abs(priceDiff) > 1e-9) return priceDiff;
+        return (a.shopName || '').localeCompare(b.shopName || '', undefined, { sensitivity: 'base' });
+      });
+
+      avgPriceSorted.forEach((rec, idx) => {
+        if (idx === 0) {
+          rec.avgRank = 1;
+        } else {
+          const prev = avgPriceSorted[idx - 1];
+          rec.avgRank = Math.abs(rec.avgPrice - prev.avgPrice) <= 1e-9 ? prev.avgRank : idx + 1;
+        }
+      });
+
+      const q = (priceShopSearchQuery || '').trim().toLowerCase();
+      const filteredSorted = q
+        ? enrichedPrices.filter(p => (p.shopName || '').toLowerCase().includes(q))
+        : [...enrichedPrices];
+
+      filteredSorted.sort((a, b) => {
+        if (priceSortBy === 'shop') {
+          const shopCmp = (a.shopName || '').localeCompare(b.shopName || '', undefined, { sensitivity: 'base' });
+          if (shopCmp !== 0) return shopCmp;
+          return a.avgPrice - b.avgPrice;
+        }
+        const priceDiff = a.avgPrice - b.avgPrice;
+        if (Math.abs(priceDiff) > 1e-9) return priceDiff;
+        return (a.shopName || '').localeCompare(b.shopName || '', undefined, { sensitivity: 'base' });
+      });
+
+      return {
+        totalCount: enrichedPrices.length,
+        minAvg,
+        filteredSorted
+      };
+    }
+
+    function renderPriceList(container, params = {}) {
+      const item = appData.items.find(i => i.id === params.itemId);
+      if (!item) {
+        navigate('item-list');
+        return;
+      }
+
+      updateNavigationChrome('price-list', item.name, `單位 Unit: ${item.unit}`);
+
+      setFAB(`
+        <button
+          onclick="navigate('price-edit', { mode: 'create', itemId: '${item.id}' })"
+          class="pointer-events-auto flex items-center gap-2 bg-teal-600 hover:bg-teal-700 active:scale-95 text-white font-bold px-5 py-3.5 rounded-full shadow-lg shadow-teal-700/30 transition"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+          <span>新增格價</span>
+        </button>
+      `);
+
+      const computed = getComputedItemPrices(item);
+
+      // Header Info Card with Edit Item Button
+      const itemHeaderCard = `
+        <div class="bg-white rounded-2xl p-4 shadow-2xs border border-slate-200/80 flex items-center justify-between gap-3">
+          <div class="min-w-0">
+            <div class="text-[11px] font-bold uppercase tracking-wider text-teal-700">Selected Item 貨品</div>
+            <h2 class="text-lg font-bold text-slate-900 truncate mt-0.5">${escapeHtml(item.name)}</h2>
+            <div class="text-xs text-slate-500 mt-0.5">
+              計算單位 Unit：<span class="font-bold text-slate-700">${escapeHtml(item.unit)}</span>（平均單價顯示為 <span class="font-semibold text-teal-700">Per ${escapeHtml(item.unit)}</span>）
+            </div>
+          </div>
+          <button
+            onclick="navigate('item-edit', { mode: 'edit', itemId: '${item.id}' })"
+            class="shrink-0 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+            <span>編輯貨品</span>
+          </button>
+        </div>
+      `;
+
+      if (computed.totalCount === 0) {
+        container.innerHTML = `
+          <div class="screen-fade space-y-4">
+            ${itemHeaderCard}
+            <div class="flex flex-col items-center justify-center text-center py-12 px-4 bg-white rounded-2xl border border-dashed border-slate-300">
+              <div class="w-14 h-14 rounded-full bg-teal-50 text-teal-600 flex items-center justify-center text-2xl mb-3">💰</div>
+              <h3 class="text-base font-bold text-slate-800">未有格價紀錄</h3>
+              <p class="text-xs text-slate-500 mt-1 max-w-xs">點擊右下角「+ 新增格價」輸入不同商店的價錢與數量，系統會自動計算最抵價！</p>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      const hasQuery = (priceShopSearchQuery || '').length > 0;
+
       container.innerHTML = `
         <div class="screen-fade space-y-3">
           ${itemHeaderCard}
-          <div class="flex items-center justify-between px-1 pt-1">
-            <span class="text-xs font-bold text-slate-600">各商店格價比較 (${enrichedPrices.length} 筆)</span>
-            <span class="text-[11px] text-slate-400">點擊紀錄可編輯</span>
+
+          <!-- Search by Shop Name Bar -->
+          <div class="relative flex items-center bg-white rounded-2xl border border-slate-200/90 shadow-2xs focus-within:border-teal-600 focus-within:ring-2 focus-within:ring-teal-600/20 transition">
+            <div class="pl-3.5 pr-2 text-slate-400 pointer-events-none flex items-center">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 105.5 5.5a7.5 7.5 0 0011.15 11.15z" />
+              </svg>
+            </div>
+            <input
+              type="search"
+              id="price-shop-search-input"
+              value="${escapeHtml(priceShopSearchQuery)}"
+              oninput="handlePriceShopSearchInput(this.value, '${item.id}')"
+              placeholder="搜尋商店名稱 Search by shop name..."
+              autocomplete="off"
+              class="w-full py-3 pr-9 bg-transparent outline-none text-slate-900 placeholder:text-slate-400"
+            />
+            <button
+              type="button"
+              id="price-shop-search-clear-btn"
+              onclick="clearPriceShopSearch('${item.id}')"
+              aria-label="清除搜尋"
+              class="${hasQuery ? 'flex' : 'hidden'} absolute right-2.5 w-6 h-6 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 items-center justify-center text-xs font-bold transition"
+            >
+              ✕
+            </button>
           </div>
-          <div class="space-y-3">
-            ${cardsHtml}
+
+          <!-- Sort Controls -->
+          <div class="flex items-center justify-end gap-2 px-1">
+            <div class="inline-flex items-center bg-slate-200/80 p-0.5 rounded-xl border border-slate-300/60" role="group" aria-label="排序方式">
+              <button
+                type="button"
+                onclick="setPriceSort('avgPrice', '${item.id}')"
+                class="px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                  priceSortBy === 'avgPrice'
+                    ? 'bg-teal-700 text-white shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }"
+              >
+                平均價 Average Price
+              </button>
+              <button
+                type="button"
+                onclick="setPriceSort('shop', '${item.id}')"
+                class="px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                  priceSortBy === 'shop'
+                    ? 'bg-teal-700 text-white shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }"
+              >
+                商店 Shop
+              </button>
+            </div>
+          </div>
+
+          <div id="price-list-results" class="space-y-3">
+            ${buildPriceCardsHtml(item, computed.filteredSorted, computed.totalCount, computed.minAvg)}
           </div>
         </div>
       `;
+    }
+
+    function setPriceSort(sortMode, itemId) {
+      if (sortMode === 'avgPrice' || sortMode === 'shop') {
+        priceSortBy = sortMode;
+        renderPriceList(document.getElementById('main-content'), { itemId });
+      }
     }
 
     /**
@@ -1593,6 +1950,13 @@
               </div>
             </div>
 
+            ${isEdit && existingPrice && existingPrice.updatedAt ? `
+              <div class="flex items-center justify-between text-xs text-slate-500 bg-slate-50 border border-slate-200/80 rounded-xl px-3.5 py-2.5">
+                <span class="font-medium">最後更新 Update 時間</span>
+                <span class="font-mono font-semibold text-slate-700">${escapeHtml(formatTimestamp(existingPrice.updatedAt))}</span>
+              </div>
+            ` : ''}
+
             <p id="price-error" class="text-xs text-rose-600 font-medium hidden"></p>
 
             <!-- Save & Delete Buttons -->
@@ -1666,6 +2030,7 @@
         return;
       }
 
+      const nowIso = new Date().toISOString();
       if (priceId) {
         const target = appData.prices.find(p => p.id === priceId);
         if (target) {
@@ -1673,6 +2038,7 @@
           target.qtyPerItem = qtyPerItem;
           target.totalItems = totalItems;
           target.totalPrice = totalPrice;
+          target.updatedAt = nowIso;
         }
         showToast('格價紀錄已更新', '✅');
       } else {
@@ -1682,7 +2048,8 @@
           shopName,
           qtyPerItem,
           totalItems,
-          totalPrice
+          totalPrice,
+          updatedAt: nowIso
         });
         showToast('已新增格價紀錄', '✅');
       }
@@ -1714,14 +2081,14 @@
     function generateTabDelimitedExport() {
       // Structured Tab-delimited format supporting Shops, Items, and Prices cleanly
       const lines = [];
-      lines.push(['RECORD_TYPE', 'SHOP_NAME', 'ITEM_NAME', 'UNIT', 'QTY_PER_ITEM', 'TOTAL_ITEMS', 'TOTAL_PRICE', 'AVG_PRICE_PER_QTY'].join('\t'));
+      lines.push(['RECORD_TYPE', 'SHOP_NAME', 'ITEM_NAME', 'UNIT', 'QTY_PER_ITEM', 'TOTAL_ITEMS', 'TOTAL_PRICE', 'AVG_PRICE_PER_QTY', 'UPDATED_AT'].join('\t'));
 
       appData.shops.forEach(s => {
-        lines.push(['SHOP', s.name, '', '', '', '', '', ''].join('\t'));
+        lines.push(['SHOP', s.name, '', '', '', '', '', '', s.updatedAt || ''].join('\t'));
       });
 
       appData.items.forEach(i => {
-        lines.push(['ITEM', '', i.name, i.unit, '', '', '', ''].join('\t'));
+        lines.push(['ITEM', '', i.name, i.unit, '', '', '', '', i.updatedAt || ''].join('\t'));
       });
 
       appData.prices.forEach(p => {
@@ -1737,7 +2104,8 @@
           p.qtyPerItem,
           p.totalItems,
           p.totalPrice,
-          avg
+          avg,
+          p.updatedAt || ''
         ].join('\t'));
       });
 
@@ -1941,21 +2309,28 @@
         const newItems = [];
         const newPrices = [];
 
-        const ensureShop = (shopName) => {
+        const parseUpdatedAt = (rawVal) => {
+          const s = (rawVal || '').trim();
+          if (!s) return new Date().toISOString();
+          const d = new Date(s);
+          return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+        };
+
+        const ensureShop = (shopName, updatedAtVal) => {
           const clean = (shopName || '').trim();
           if (!clean) return;
           if (!newShops.some(s => s.name.toLowerCase() === clean.toLowerCase())) {
-            newShops.push({ id: generateId('shop'), name: clean });
+            newShops.push({ id: generateId('shop'), name: clean, updatedAt: parseUpdatedAt(updatedAtVal) });
           }
         };
 
-        const ensureItem = (itemName, unit) => {
+        const ensureItem = (itemName, unit, updatedAtVal) => {
           const cleanName = (itemName || '').trim();
           const cleanUnit = (unit || 'pcs').trim();
           if (!cleanName) return null;
           let found = newItems.find(i => i.name.toLowerCase() === cleanName.toLowerCase());
           if (!found) {
-            found = { id: generateId('item'), name: cleanName, unit: cleanUnit || 'pcs' };
+            found = { id: generateId('item'), name: cleanName, unit: cleanUnit || 'pcs', updatedAt: parseUpdatedAt(updatedAtVal) };
             newItems.push(found);
           }
           return found;
@@ -1972,9 +2347,9 @@
           }
 
           if (firstCol === 'SHOP') {
-            ensureShop(cols[1]);
+            ensureShop(cols[1], cols[8]);
           } else if (firstCol === 'ITEM') {
-            ensureItem(cols[2], cols[3]);
+            ensureItem(cols[2], cols[3], cols[8]);
           } else if (firstCol === 'PRICE') {
             const shopName = (cols[1] || '').trim();
             const itemName = (cols[2] || '').trim();
@@ -1982,10 +2357,11 @@
             const qtyPerItem = parseFloat(cols[4]);
             const totalItems = parseFloat(cols[5]);
             const totalPrice = parseFloat(cols[6]);
+            const updatedAt = parseUpdatedAt(cols[8]);
 
             if (shopName && itemName && qtyPerItem > 0 && totalItems > 0 && !isNaN(totalPrice)) {
-              ensureShop(shopName);
-              const itemObj = ensureItem(itemName, unit);
+              ensureShop(shopName, updatedAt);
+              const itemObj = ensureItem(itemName, unit, updatedAt);
               if (itemObj) {
                 newPrices.push({
                   id: generateId('price'),
@@ -1993,7 +2369,8 @@
                   shopName,
                   qtyPerItem,
                   totalItems,
-                  totalPrice
+                  totalPrice,
+                  updatedAt
                 });
               }
             }
@@ -2006,10 +2383,11 @@
             const qtyPerItem = parseFloat(cols[3]);
             const totalItems = parseFloat(cols[4]);
             const totalPrice = parseFloat(cols[5]);
+            const updatedAt = parseUpdatedAt(cols[6]);
 
             if (shopName && itemName && qtyPerItem > 0 && totalItems > 0 && !isNaN(totalPrice)) {
-              ensureShop(shopName);
-              const itemObj = ensureItem(itemName, unit);
+              ensureShop(shopName, updatedAt);
+              const itemObj = ensureItem(itemName, unit, updatedAt);
               if (itemObj) {
                 newPrices.push({
                   id: generateId('price'),
@@ -2017,7 +2395,8 @@
                   shopName,
                   qtyPerItem,
                   totalItems,
-                  totalPrice
+                  totalPrice,
+                  updatedAt
                 });
               }
             }
